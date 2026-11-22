@@ -45,10 +45,11 @@ type Config struct {
 
 	// AI gateway (plan.md §9). When the key is empty the assistant falls back to
 	// deterministic Indonesian heuristics instead of failing.
-	OpenAIAPIKey  string
-	OpenAIBaseURL string
-	OpenAIModel   string
-	STTModel      string
+	OpenAIAPIKey    string
+	OpenAIBaseURL   string
+	OpenAIModel     string
+	OpenAISessionID string
+	STTModel        string
 	// OpenAISTTBaseURL menargetkan transkripsi ke layanan terpisah (mis. speaches
 	// lokal). Kosong berarti memakai OpenAIBaseURL, jadi konfigurasi lama tetap
 	// berlaku tanpa perubahan.
@@ -78,6 +79,7 @@ func Load() (*Config, error) {
 		OpenAIAPIKey:           os.Getenv("OPENAI_API_KEY"),
 		OpenAIBaseURL:          env("OPENAI_BASE_URL", "https://api.openai.com/v1"),
 		OpenAIModel:            env("OPENAI_MODEL", "gpt-4o-mini"),
+		OpenAISessionID:        strings.TrimSpace(env("FISCA_AI_SESSION_ID", "fisca-assistant")),
 		STTModel:               env("OPENAI_STT_MODEL", "whisper-1"),
 		OpenAISTTBaseURL:       strings.TrimRight(os.Getenv("OPENAI_STT_BASE_URL"), "/"),
 		AITimeout:              time.Duration(parseFloat(env("AI_TIMEOUT_SECONDS", "20"), 20) * float64(time.Second)),

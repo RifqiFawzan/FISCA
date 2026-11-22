@@ -217,6 +217,43 @@ func (s *Service) ensureConversation(ctx context.Context, q *generated.Queries, 
 	})
 }
 
+// financialContext merangkum angka nyata dari backend untuk grounding jawaban
+// konsultasi. Dipanggil dari interpret saat AI aktif; kegagalan query tidak
+// menggagalkan pesan — konteks cukup dikosongkan (model lalu menyatakan angka
+// tidak tersedia, sesuai Ai_intent.md §11).
+func (s *Service) financialContext(ctx context.Context, q *generated.Queries, userID uuid.UUID) string {
+	var b strings.Builder
+	dash, err := s.Dashboard(ctx, q, userID, "this_month")
+	if err != nil {
+		return ""
+	}
+	fmt.Fprintf(&b, "Periode %s: pemasukan Rp%s, pengeluaran Rp%s, net Rp%s.",
+		dash.Period.Label,
+		formatRupiahPlain(dash.Summary.Income),
+		formatRupiahPlain(dash.Summary.Expense),
+		formatRupiahPlain(dash.Summary.Net),
+	)
+	if dash.Budget != nil {
+		fmt.Fprintf(&b, " Budget %s: batas Rp%s, terpakai Rp%s, sisa Rp%s (%.0f%% terpakai).",
+			dash.Period.Label,
+			formatRupiahPlain(dash.Budget.OverallLimit),
+			formatRupiahPlain(dash.Budget.Spent),
+			formatRupiahPlain(dash.Budget.OverallLimit-dash.Budget.Spent),
+			float64(dash.Budget.Spent)/float64(dash.Budget.OverallLimit)*100,
+		)
+	}
+	if goals, err := s.ListSavingsGoals(ctx, q, userID); err == nil && len(goals) > 0 {
+		var saved, target int64
+		for _, g := range goals {
+			saved += g.Saved
+			target += g.TargetAmount
+		}
+		fmt.Fprintf(&b, " Tabungan: %d target, terkumpul Rp%s dari Rp%s.",
+			len(goals), formatRupiahPlain(saved), formatRupiahPlain(target))
+	}
+	return b.String()
+}
+
 func (s *Service) interpret(ctx context.Context, q *generated.Queries, userID uuid.UUID, text string) (ai.Intent, []string) {
 	trace := []string{"intent"}
 	categories, _ := s.ListCategories(ctx, q, userID, "")
@@ -232,12 +269,16 @@ func (s *Service) interpret(ctx context.Context, q *generated.Queries, userID uu
 	}
 
 	if s.AI != nil && s.AI.Available() {
+		// Backend-computed numbers for grounded consultation answers
+		// (Ai_intent.md §5/§6) — diambil hanya saat AI aktif.
+		financialContext := s.financialContext(ctx, q, userID)
 		aiCtx, cancel := context.WithTimeout(ctx, s.Cfg.AITimeout)
 		defer cancel()
 		intent, err := s.AI.ExtractIntent(aiCtx, text, ai.Context{
 			Categories: categoryNames,
 			Accounts:   accountNames,
 			Today:      s.NowUTC(),
+			Financial:  financialContext,
 		})
 		if err == nil {
 			trace = append(trace, "ai")
@@ -353,6 +394,13 @@ func (s *Service) routeIntent(
 			Card{Type: "budget_status", Title: "Budget " + r.Label, Budget: budget}, nil
 	case "proposal":
 		return s.handleBudgetProposal(ctx, q, userID, text, intent, periodRaw, wc)
+	case "consultation":
+		// Jawaban grounding-nya dibangun model dari konteks finansial backend;
+		// kosong berarti model tidak yakin — jatuh ke jawaban kapabilitas.
+		if answer := strings.TrimSpace(intent.Answer); answer != "" {
+			return answer, Card{}, nil
+		}
+		fallthrough
 	default:
 		return "Aku bisa mencatat transaksi, menampilkan ringkasan, mencari riwayat, dan mengecek budget. Contoh: \"catat makan siang 25rb\".",
 			Card{

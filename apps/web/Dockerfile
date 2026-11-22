@@ -21,6 +21,11 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
 ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
 ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
 
+# Target proxy /api (server-side rewrite). Di Docker: http://api:8080 (service
+# compose); di build lokal/dev: default http://localhost:8080.
+ARG API_PROXY_TARGET=http://localhost:8080
+ENV API_PROXY_TARGET=${API_PROXY_TARGET}
+
 # Supabase Auth — DORMAN (ISSUE-15 memakai auth lokal). Nilai kosong berarti
 # jalur cadangan ini tidak aktif; halaman login tidak lagi memakai fallback
 # token dev, melainkan selalu menampilkan form email + kata sandi.

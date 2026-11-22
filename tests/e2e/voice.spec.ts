@@ -55,7 +55,12 @@ test.describe("with microphone", () => {
 
     const transactions = await api(token, "GET", "/transactions?limit=50");
     const rows = transactions.body.data.items as Array<{ description: string; amount: number }>;
-    const stored = rows.find((r) => r.description === "Makan siang");
+    // Deskripsi bebas dari hasil ekstraksi (heuristik maupun model AI bisa
+    // memformat sedikit berbeda); kontraknya: baris nyata untuk transaksi ini
+    // dengan nominal yang benar.
+    const stored = rows.find(
+      (r) => r.description.toLowerCase().includes("makan siang") && r.amount === 35000,
+    );
     expect(stored, "voice expense must be stored as a real row").toBeTruthy();
     expect(stored!.amount).toBe(35000);
   });

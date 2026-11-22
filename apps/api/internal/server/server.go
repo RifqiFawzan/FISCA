@@ -46,7 +46,7 @@ func New(opts Options) *gin.Engine {
 	router.GET("/health", health(opts))
 
 	svc := service.New(opts.DB, opts.Config)
-	svc.AI = ai.New(opts.Config.OpenAIAPIKey, opts.Config.OpenAIBaseURL, opts.Config.OpenAISTTBaseURL, opts.Config.OpenAIModel, opts.Config.STTModel, opts.Config.AITimeout)
+	svc.AI = ai.New(opts.Config.OpenAIAPIKey, opts.Config.OpenAIBaseURL, opts.Config.OpenAISTTBaseURL, opts.Config.OpenAIModel, opts.Config.STTModel, opts.Config.OpenAISessionID, opts.Config.AITimeout)
 
 	v1 := router.Group("/api/v1")
 	v1.Use(middleware.Auth(opts.Verifier))
