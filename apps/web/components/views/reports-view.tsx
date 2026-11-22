@@ -7,6 +7,7 @@ import { AlertTriangle, ArrowDownRight, ArrowUpRight, ChartNoAxesColumn } from "
 import { api, hasToken } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import {
+  formatCompact,
   formatDayMonth,
   formatIDR,
   formatMonthLabel,
@@ -453,25 +454,102 @@ function FundFlowCard({
   );
 }
 
+/**
+ * Cash-flow chart as an area/line curve, mirroring the design-refs
+ * "Trayektori Arus Kas" (solid income line + gradient area, dashed expense
+ * line). Pure SVG with no library; hover columns carry native <title>
+ * tooltips, and the visible legend/labels below stay as the text equivalent.
+ * The svg scales uniformly via its viewBox (width:100%), so strokes and
+ * labels never distort.
+ */
 function CashFlowChart({
   points,
 }: {
   points: { label: string; income: number; expense: number }[];
 }) {
-  const max = Math.max(1, ...points.map((point) => Math.max(point.income, point.expense)));
   const visible = points.slice(-30);
+  const max = Math.max(1, ...visible.map((point) => Math.max(point.income, point.expense)));
+  const W = 640;
+  const H = 200;
+  const PAD_L = 46;
+  const PAD_R = 8;
+  const TOP = 12;
+  const BASE = 186;
+  const n = visible.length;
+  const span = W - PAD_L - PAD_R;
+  const x = (i: number) => (n <= 1 ? PAD_L + span / 2 : PAD_L + (i / (n - 1)) * span);
+  const y = (value: number) => BASE - (value / max) * (BASE - TOP);
+  const step = n <= 1 ? span : span / (n - 1);
+  const line = (key: "income" | "expense") =>
+    visible.map((point, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(1)} ${y(point[key]).toFixed(1)}`).join(" ");
+  const area = (key: "income" | "expense") =>
+    n === 0 ? "" : `${line(key)} L ${x(n - 1).toFixed(1)} ${BASE} L ${x(0).toFixed(1)} ${BASE} Z`;
+
   return (
     <div>
-      <div className="flex h-36 items-end justify-center gap-1 overflow-x-auto pb-1">
-        {visible.map((point, index) => (
-          <div key={`${point.label}-${index}`} className="flex h-full min-w-[10px] max-w-10 flex-1 flex-col items-center justify-end gap-0.5" title={`${point.label}: masuk ${formatIDR(point.income)}, keluar ${formatIDR(point.expense)}`}>
-            <div className="flex h-full w-full items-end justify-center gap-px">
-              <div className="w-1/2 rounded-t-sm bg-income/80" style={{ height: `${Math.max(1, (point.income / max) * 100)}%` }} />
-              <div className="w-1/2 rounded-t-sm bg-expense/80" style={{ height: `${Math.max(1, (point.expense / max) * 100)}%` }} />
-            </div>
-          </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img">
+        <title>Arus kas harian: pemasukan versus pengeluaran</title>
+        <defs>
+          <linearGradient id="cashIncomeArea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" style={{ stopColor: "var(--color-income)", stopOpacity: 0.35 }} />
+            <stop offset="100%" style={{ stopColor: "var(--color-income)", stopOpacity: 0 }} />
+          </linearGradient>
+          <linearGradient id="cashExpenseArea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" style={{ stopColor: "var(--color-expense)", stopOpacity: 0.28 }} />
+            <stop offset="100%" style={{ stopColor: "var(--color-expense)", stopOpacity: 0 }} />
+          </linearGradient>
+        </defs>
+
+        {[1, 0.5, 0].map((fraction) => (
+          <g key={fraction}>
+            <line
+              x1={PAD_L}
+              x2={W - PAD_R}
+              y1={y(max * fraction)}
+              y2={y(max * fraction)}
+              stroke="rgba(255, 255, 255, 0.06)"
+              strokeDasharray={fraction === 0 ? undefined : "4 4"}
+            />
+            <text x={PAD_L - 6} y={y(max * fraction) + 3.5} textAnchor="end" className="fill-muted text-[10px]">
+              {fraction === 0 ? "0" : formatCompact(max * fraction)}
+            </text>
+          </g>
         ))}
-      </div>
+
+        <path d={area("income")} fill="url(#cashIncomeArea)" />
+        <path d={area("expense")} fill="url(#cashExpenseArea)" />
+        <path
+          d={line("income")}
+          fill="none"
+          stroke="var(--color-income)"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d={line("expense")}
+          fill="none"
+          stroke="var(--color-expense)"
+          strokeWidth="2"
+          strokeDasharray="6 4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {visible.map((point, i) => (
+          <rect
+            key={`${point.label}-${i}`}
+            aria-hidden
+            x={x(i) - step / 2}
+            y={TOP}
+            width={step}
+            height={BASE - TOP}
+            fill="transparent"
+          >
+            <title>{`${point.label}: masuk ${formatIDR(point.income)}, keluar ${formatIDR(point.expense)}`}</title>
+          </rect>
+        ))}
+      </svg>
       <div className="mt-2 flex items-center justify-between text-[11px] text-muted">
         <span>{visible[0]?.label}</span>
         <span className="flex items-center gap-3">

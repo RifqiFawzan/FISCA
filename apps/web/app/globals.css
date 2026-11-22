@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
-   FISCA design tokens — sumber kebenaran: DESIGN.md §4.
+   FISCA design tokens — sumber kebenaran: DESIGN.md §4 (selaras dengan blok
+   `colors:` di Color_Design.md, token Stitch "Luminescent Carbon Fintech").
    Dark-first. Tidak ada token carbon/ESG.
    --------------------------------------------------------------------------- */
 
@@ -14,14 +15,15 @@
   --color-surface-high: #262a33;
   --color-surface-highest: #31353e;
 
-  /* Text */
-  --color-foreground: #f1f5f9;
-  --color-muted: #94a3b8;
-  /* DESIGN.md §4 menetapkan #64748B untuk teks sekunder, tetapi rasio itu
-     hanya 3.0–4.1:1 di permukaan gelap FISCA dan gagal WCAG AA (4.5:1).
-     #8493ab adalah nilai terdekat yang lulus di semua permukaan, jadi hirarki
-     muted vs muted-dim tetap terjaga. Deviasi dicatat di plan.md §17. */
-  --color-muted-dim: #8493ab;
+  /* Text — nilai dari Color_Design.md YAML: on-surface / on-surface-variant.
+     Audit WCAG AA (tests/audit-color-yaml.mjs): foreground terburuk9,51;
+     muted terburuk7,20 (surface-highest). */
+  --color-foreground: #dfe2ee;
+  --color-muted: #bbcabf;
+  /* outline Color_Design.md (#86948A) menggantikan deviasi lama #8493AB.
+     Rasio terburuk5,14 di permukaan gelap FISCA — tetap lulus WCAG AA (4,5:1),
+     jadi hierarki muted vs muted-dim tetap terjaga. */
+  --color-muted-dim: #86948a;
   --color-on-primary: #003824;
 
   /* Brand & semantic accents
@@ -41,11 +43,10 @@
   /* tertiary Stitch (#C0C1FF) */
   --color-analytics: #c0c1ff;
   --color-warning: #fbbf24;
-  /* DESIGN.md §4 menetapkan #F43F5E, tetapi rasio itu 3.9–4.4:1 di atas
-     chip/alert yang diwarnainya sendiri dan gagal WCAG AA. #f66981 adalah
-     merah terdekat yang lulus di semua latar nyata (badge 15%, alert 10%,
-     panel kaca, permukaan). Deviasi dicatat di plan.md §17. */
-  --color-danger: #f66981;
+  /* error Color_Design.md (#FFB4AB) menggantikan #F66981 (yang dulu
+     menggantikan #F43F5E yang gagal AA). Nilai baru justru lebih aman:
+     terburuk8,12:1 di atas tint-nya sendiri dan8,4:1 di permukaan. */
+  --color-danger: #ffb4ab;
   --color-success: #34d399;
 
   /* Borders */

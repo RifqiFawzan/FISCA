@@ -1,22 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  TrendingDown,
+  TrendingUp,
+  X,
+} from "lucide-react";
 
 import { api, errorMessage, hasToken } from "@/lib/api";
 import type { Transaction } from "@/lib/api";
 import { useAction, useApi } from "@/lib/use-api";
-import { formatDayMonthYear, formatIDR } from "@/lib/format";
+import { useIsDesktop } from "@/lib/use-desktop";
+import { formatDayMonthYear, formatIDR, formatSignedIDR } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, RetryButton, Skeleton, Spinner } from "@/components/ui/feedback";
 import { Input, Field, Select } from "@/components/ui/field";
 import { Segmented, PERIOD_OPTIONS } from "@/components/ui/segmented";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { Sheet } from "@/components/ui/sheet";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TransactionList } from "@/components/finance/transaction-row";
+import { TransactionTable } from "@/components/finance/transaction-table";
 import { TransactionForm } from "@/components/finance/transaction-form";
 
 type TypeFilter = "" | "expense" | "income" | "transfer";
@@ -36,20 +48,12 @@ export function HistoryView() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Transaction | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [desktop, setDesktop] = useState(false);
-
-  // At >=1280px the transaction detail renders in the sticky inspector rail;
-  // below that it opens as a sheet (DESIGN.md §5.3 desktop layout).
-  useEffect(() => {
-    const media = window.matchMedia("(min-width: 1280px)");
-    const update = () => setDesktop(media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
+  // >=1280px: inspector rail + desktop table; below: Sheet + list (DESIGN.md §5.3).
+  const desktop = useIsDesktop();
 
   const accounts = useApi(() => api.accounts.list(), "accounts");
   const categories = useApi(() => api.categories.list(), "categories");
+  const dashboard = useApi(() => api.analytics.dashboard(period), `history-kpi:${period}`);
   const create = useAction();
 
   const searching = submittedQuery.trim().length > 0;
@@ -123,6 +127,42 @@ export function HistoryView() {
           </Button>
         }
       />
+
+      {desktop && dashboard.data ? (
+        <div className="grid grid-cols-3 gap-4">
+          <KpiCard
+            label="Pemasukan"
+            value={formatIDR(dashboard.data.summary.income)}
+            meta={`Periode ${dashboard.data.period.label}`}
+            icon={<ArrowDownLeft className="size-5" aria-hidden />}
+            tone="income"
+          />
+          <KpiCard
+            label="Pengeluaran"
+            value={formatIDR(dashboard.data.summary.expense)}
+            meta={`Periode ${dashboard.data.period.label}`}
+            icon={<ArrowUpRight className="size-5" aria-hidden />}
+            tone="expense"
+          />
+          <KpiCard
+            label="Selisih arus kas"
+            value={formatSignedIDR(dashboard.data.summary.net)}
+            meta={
+              dashboard.data.summary.net >= 0
+                ? "Pemasukan melebihi pengeluaran"
+                : "Pengeluaran melebihi pemasukan"
+            }
+            icon={
+              dashboard.data.summary.net >= 0 ? (
+                <TrendingUp className="size-5" aria-hidden />
+              ) : (
+                <TrendingDown className="size-5" aria-hidden />
+              )
+            }
+            tone={dashboard.data.summary.net >= 0 ? "income" : "expense"}
+          />
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4 lg:rounded-xl lg:border lg:border-line lg:bg-surface lg:p-3">
         <form
@@ -222,7 +262,11 @@ export function HistoryView() {
               />
             ) : (
               <>
-                <TransactionList items={items} onSelect={setSelected} />
+                {desktop ? (
+                  <TransactionTable items={items} onSelect={setSelected} grouped />
+                ) : (
+                  <TransactionList items={items} onSelect={setSelected} grouped />
+                )}
                 {cursor ? (
                   <div className="border-t border-line p-3 text-center">
                     <Button variant="secondary" onClick={loadMore} loading={loadingMore}>

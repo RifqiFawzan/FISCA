@@ -16,6 +16,7 @@ import {
 import { api, hasToken } from "@/lib/api";
 import type { CategorySpend, CreateTransactionPayload, Warning } from "@/lib/api";
 import { useAction, useApi } from "@/lib/use-api";
+import { useIsDesktop } from "@/lib/use-desktop";
 import { formatCompact, formatIDR, formatSignedIDR } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -23,9 +24,11 @@ import { Button } from "@/components/ui/button";
 import { Alert, RetryButton, Skeleton } from "@/components/ui/feedback";
 import { Progress, toneForPercent } from "@/components/ui/progress";
 import { Segmented, PERIOD_OPTIONS } from "@/components/ui/segmented";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { Sheet } from "@/components/ui/sheet";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TransactionList } from "@/components/finance/transaction-row";
+import { TransactionTable } from "@/components/finance/transaction-table";
 import { TransactionForm } from "@/components/finance/transaction-form";
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
@@ -39,6 +42,7 @@ export function HomeView() {
   const [period, setPeriod] = useState<string>("this_month");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [notice, setNotice] = useState<{ text: string; warnings: Warning[] } | null>(null);
+  const isDesktop = useIsDesktop();
 
   const dashboard = useApi(() => api.analytics.dashboard(period), `dashboard:${period}`);
   const me = useApi(() => api.me.get(), "me");
@@ -81,27 +85,31 @@ export function HomeView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={`Halo, ${me.data?.displayName?.split(" ")[0] ?? "teman"} 👋`}
-        description="Ringkasan arus kas Anda dalam satu tempat."
-        action={
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <Segmented
-              value={period}
-              onChange={setPeriod}
-              options={PERIOD_OPTIONS}
-              size="sm"
-              className="max-lg:hidden"
-            />
-            <Button
-              icon={<Plus className="size-4" aria-hidden />}
-              onClick={() => setSheetOpen(true)}
-            >
-              Catat transaksi
-            </Button>
-          </div>
-        }
-      />
+      {/* Design-refs home: the welcome bar lives inside a frosted panel at lg+;
+          below lg it stays an unframed header so mobile is untouched. */}
+      <section className="lg:rounded-xl lg:border lg:border-line lg:bg-surface/70 lg:p-5 lg:backdrop-blur-[16px]">
+        <PageHeader
+          title={`Halo, ${me.data?.displayName?.split(" ")[0] ?? "teman"} 👋`}
+          description="Ringkasan arus kas Anda dalam satu tempat."
+          action={
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <Segmented
+                value={period}
+                onChange={setPeriod}
+                options={PERIOD_OPTIONS}
+                size="sm"
+                className="max-lg:hidden"
+              />
+              <Button
+                icon={<Plus className="size-4" aria-hidden />}
+                onClick={() => setSheetOpen(true)}
+              >
+                Catat transaksi
+              </Button>
+            </div>
+          }
+        />
+      </section>
 
       <Segmented
         value={period}
@@ -353,7 +361,15 @@ export function HomeView() {
                           <div className="flex min-w-0 items-center gap-3">
                             <span
                               aria-hidden
-                              className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-high text-[11px] font-bold text-muted"
+                              className={`grid size-9 shrink-0 place-items-center rounded-lg bg-surface-high text-[11px] font-bold ${
+                                account.type === "bank"
+                                  ? "text-primary"
+                                  : account.type === "ewallet"
+                                    ? "text-transfer"
+                                    : account.type === "cash"
+                                      ? "text-income"
+                                      : "text-muted"
+                              }`}
                             >
                               {account.name.slice(0, 2).toUpperCase()}
                             </span>
@@ -392,7 +408,11 @@ export function HomeView() {
               }
             />
             {data.recentTransactions.length > 0 ? (
-              <TransactionList items={data.recentTransactions.slice(0, 5)} />
+              isDesktop ? (
+                <TransactionTable items={data.recentTransactions.slice(0, 5)} />
+              ) : (
+                <TransactionList items={data.recentTransactions.slice(0, 5)} />
+              )
             ) : (
               <CardBody>
                 <EmptyState
@@ -543,48 +563,6 @@ function MiniStat({
         {label}
       </p>
       <p className="financial mt-1 text-sm font-semibold sm:text-base">{value}</p>
-    </div>
-  );
-}
-
-/** Desktop-only KPI card for the four-up summary strip (DESIGN.md §8.2). */
-function KpiCard({
-  label,
-  value,
-  meta,
-  icon,
-  tone,
-}: {
-  label: string;
-  value: string;
-  meta: string;
-  icon: React.ReactNode;
-  tone: "income" | "expense" | "neutral";
-}) {
-  const valueTone =
-    tone === "income" ? "text-income" : tone === "expense" ? "text-expense" : "text-foreground";
-  const iconTone =
-    tone === "income" ? "text-income" : tone === "expense" ? "text-expense" : "text-primary";
-
-  return (
-    <div className="rounded-xl border border-line bg-surface px-5 py-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-xs font-semibold uppercase tracking-wider text-muted">
-            {label}
-          </p>
-          <p className={`financial mt-2 text-2xl font-bold tracking-tight ${valueTone}`}>
-            {value}
-          </p>
-        </div>
-        <span
-          aria-hidden
-          className={`grid size-10 shrink-0 place-items-center rounded-xl bg-surface-high ${iconTone}`}
-        >
-          {icon}
-        </span>
-      </div>
-      <p className="mt-3 text-xs text-muted">{meta}</p>
     </div>
   );
 }

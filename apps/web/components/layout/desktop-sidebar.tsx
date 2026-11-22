@@ -19,12 +19,12 @@ export function DesktopSidebar() {
       <div className="flex h-16 shrink-0 items-center px-2 lg:px-5">
         <Link
           href="/home"
-          aria-label="FISCA · Beranda"
+          aria-label="F FISCA · Beranda"
           className="flex items-center gap-3 rounded-md"
         >
           <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary-deep text-sm font-extrabold text-on-primary">
             F
-          </span>
+          </span>{" "}
           <span className="hidden text-lg font-extrabold tracking-tight lg:block">
             FISCA
           </span>

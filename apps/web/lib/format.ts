@@ -91,6 +91,27 @@ export function transactionSign(type: string): "+" | "−" | "" {
   return "";
 }
 
+/** Stable per-local-day key for grouping transaction lists. */
+export function dayGroupKey(iso: string): string {
+  const date = safeDate(iso);
+  return date ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}` : iso;
+}
+
+/**
+ * Date-group header label: "Hari Ini" / "Kemarin" / "22 Nov". Used by
+ * client-rendered lists only (rows appear after the API responds), so the
+ * Date.now() comparison never disagrees with SSR.
+ */
+export function dayGroupLabel(iso: string): string {
+  const date = safeDate(iso);
+  if (!date) return "–";
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86_400_000);
+  if (days === 0) return "Hari Ini";
+  if (days === 1) return "Kemarin";
+  return formatDayMonth(iso);
+}
+
 /**
  * Accepts the way people actually type rupiah in Indonesia: "25rb", "1,5jt",
  * "10.000", "50000". Returns null when the input is not a positive amount.

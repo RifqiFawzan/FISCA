@@ -65,6 +65,7 @@ Locked sections may only change together with an entry in this table (plan.md §
 | 2026-11-10 | §4.1 `danger` | `#F43F5E` → `#F66981` | The original measured 4.16:1 on tinted badges; `#F66981` passes on every real background (worst 4.60). |
 | 2026-11-10 | §4.6 primary glow | `rgba(16,185,129,0.20)` → `rgba(78,222,163,0.20)` | Follows `primary`. The `ai` and `danger` glows were left unchanged on purpose: DESIGN.md and the code still agree on them; they only differ slightly in hue from their updated accents. |
 | 2026-11-21 | §4.5 glass, §4.6 glow | Blur dibatasi **2 permukaan** (Panel + bottom navigation; floating & modal jadi solid). Glow dibatasi **1 jenis** (aksi primer saja); token glow `ai`/`warning`/`danger` dihapus dari `globals.css`. | Permintaan user mengikuti aturan antislop: dosis diturunkan ke batas R-10 (maks. 2 permukaan) dan R-13 (maks. 1 jenis elemen). Sebelumnya blur ada di 6 permukaan dan glow di 5 titik, sehingga glass/glow menjadi *karakter* UI, bukan aksen — bertentangan dengan §4.5 sendiri yang berbunyi "Use glassmorphism selectively". Token yang dihapus memang tidak dipakai komponen mana pun. Rincian di `docs/issues/ISSUE-26.md`. |
+| 2026-11-22 | §4.1 `text-primary`, `text-secondary`, `text-muted`, `danger` | `#F1F5F9`→`#DFE2EE`, `#94A3B8`→`#BBCABF`, `#8493AB`→`#86948A`, `#F66981`→`#FFB4AB` | Arah product owner: samakan dengan blok `colors:` di `Color_Design.md` (token Stitch "Luminescent Carbon Fintech"). Permukaan sudah sama; hanya teks & danger yang berbeda. Semua nilai lolos WCAG AA di setiap permukaan FISCA — terburuk: `text-secondary`7,20 (surface-highest), `text-muted`5,14, `danger`8,12 (di atas tint-nya sendiri), `text-primary`9,51. Audit deterministik: `tests/audit-color-yaml.mjs`. Deviasi warna sebelumnya (#64748B→#8493AB, #F43F5E→#F66981) tetap tercatat sebagai sejarah di baris sebelumnya. |
 
 Full deviation details live in `plan.md` §17.2; the work is documented in `docs/issues/ISSUE-23.md`.
 
@@ -188,9 +189,9 @@ The tokens below are the normalized implementation baseline. If the existing Sti
 
 | Token | Value | Usage |
 |---|---|---|
-| `text-primary` | `#F1F5F9` | Headings, primary values |
-| `text-secondary` | `#94A3B8` | Supporting text |
-| `text-muted` | `#8493AB` | Non-essential metadata only |
+| `text-primary` | `#DFE2EE` | Headings, primary values |
+| `text-secondary` | `#BBCABF` | Supporting text |
+| `text-muted` | `#86948A` | Non-essential metadata only |
 | `text-disabled` | `#64748B` | Disabled content, with disabled styling |
 | `text-on-primary` | `#003824` | Text on bright emerald surfaces |
 
@@ -207,7 +208,7 @@ The tokens below are the normalized implementation baseline. If the existing Sti
 | `ai-accent` | `#4CD7F6` | AI processing and assistant-specific information |
 | `analytics-accent` | `#C0C1FF` | Optional analytical distinction; use sparingly |
 | `warning` | `#FBBF24` | Budget warning |
-| `danger` | `#F66981` | Budget exceeded and destructive actions |
+| `danger` | `#FFB4AB` | Budget exceeded and destructive actions |
 | `success` | `#34D399` | Confirmed success |
 | `border-subtle` | `rgba(255,255,255,0.06)` | Standard panel border |
 | `border-default` | `rgba(255,255,255,0.08)` | Inputs and component boundaries |

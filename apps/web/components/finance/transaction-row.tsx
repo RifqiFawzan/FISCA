@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import {
   ArrowDownLeft,
   ArrowLeftRight,
@@ -8,7 +9,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/cn";
-import { formatDayMonth, formatIDR, transactionSign } from "@/lib/format";
+import { dayGroupKey, dayGroupLabel, formatDayMonth, formatIDR, transactionSign } from "@/lib/format";
 import type { Transaction } from "@/lib/api";
 
 const typeStyle = {
@@ -140,20 +141,41 @@ export function TransactionRow({
 export function TransactionList({
   items,
   onSelect,
+  grouped = false,
 }: {
   items: Transaction[];
   onSelect?: (transaction: Transaction) => void;
+  grouped?: boolean;
 }) {
   return (
     <ul className="divide-y divide-line">
-      {items.map((transaction) => (
-        <li key={transaction.id}>
-          <TransactionRow
-            transaction={transaction}
-            onClick={onSelect ? () => onSelect(transaction) : undefined}
-          />
-        </li>
-      ))}
+      {items.map((transaction, index) => {
+        const group = grouped ? dayGroupKey(transaction.occurredAt) : "";
+        const prevGroup =
+          grouped && index > 0 ? dayGroupKey(items[index - 1].occurredAt) : "";
+        const header =
+          group && group !== prevGroup ? (
+            <li
+              key={`${group}-header`}
+              className="flex items-center gap-2 bg-surface-low px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted sm:px-5"
+            >
+              <span aria-hidden className="size-1.5 rounded-full bg-primary" />
+              {dayGroupLabel(transaction.occurredAt)}
+            </li>
+          ) : null;
+
+        return (
+          <Fragment key={transaction.id}>
+            {header}
+            <li>
+              <TransactionRow
+                transaction={transaction}
+                onClick={onSelect ? () => onSelect(transaction) : undefined}
+              />
+            </li>
+          </Fragment>
+        );
+      })}
     </ul>
   );
 }

@@ -416,7 +416,9 @@ function MessageBubble({
         ) : (
           <div>
             {message.content ? (
-              <p className="mb-1 text-sm leading-6 text-foreground">{message.content}</p>
+              <div className="mb-1 rounded-2xl rounded-tl-sm border border-line bg-surface-low px-3.5 py-2.5 text-sm leading-6 text-foreground">
+                {message.content}
+              </div>
             ) : null}
             {message.card ? (
               <AssistantCardView card={message.card} onApproved={onApproved} />

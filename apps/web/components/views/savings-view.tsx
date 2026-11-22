@@ -259,12 +259,26 @@ export function SavingsView() {
                     <CardHeader
                       title={goal.name}
                       description={`${goal.accountName ?? "Tanpa akun"} · tenggat ${formatDayMonthYear(`${goal.deadline}T00:00:00`)}`}
+                      icon={<PiggyBank className="size-5" />}
                       action={<Badge tone={meta.tone}>{meta.label}</Badge>}
                     />
                     <CardBody className="space-y-3">
                       <div className="flex items-baseline justify-between gap-3">
                         <span className="financial text-xl font-bold">{formatIDR(goal.saved)}</span>
-                        <span className="text-sm text-muted">dari {formatIDR(goal.targetAmount)}</span>
+                        <span className="flex items-baseline gap-2 text-sm text-muted">
+                          <span>dari {formatIDR(goal.targetAmount)}</span>
+                          <span
+                            className={`financial font-bold ${
+                              goal.percent >= 1
+                                ? "text-income"
+                                : goal.percent >= 0.8
+                                  ? "text-warning"
+                                  : "text-primary"
+                            }`}
+                          >
+                            {(goal.percent * 100).toFixed(1)}%
+                          </span>
+                        </span>
                       </div>
                       <Progress
                         value={goal.percent}

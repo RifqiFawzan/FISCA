@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Landmark, LogOut, Plus, Trash2, UserRound } from "lucide-react";
+import { Globe, LogOut, Plus, Tag, Trash2, UserRound, Wallet } from "lucide-react";
 
 import { api } from "@/lib/api";
 import { signOut } from "@/lib/session";
@@ -119,6 +119,7 @@ export function ProfileView() {
               <CardHeader
                 title="Preferensi regional"
                 description="Mata uang, locale, dan zona waktu akun."
+                icon={<Globe className="size-5" />}
               />
               <CardBody>
                 <dl className="space-y-2.5 text-sm">
@@ -144,6 +145,7 @@ export function ProfileView() {
               <CardHeader
                 title="Akun & Dompet"
                 description="Saldo dihitung dari catatan transaksi, tidak bisa diubah manual."
+                icon={<Wallet className="size-5" />}
                 action={
                   <Button size="sm" variant="secondary" icon={<Plus className="size-3.5" aria-hidden />} onClick={() => setAccountOpen(true)}>
                     Tambah
@@ -154,8 +156,19 @@ export function ProfileView() {
                 <ul className="divide-y divide-line">
                   {data.accounts.map((account) => (
                     <li key={account.id} className="flex flex-wrap items-center gap-3 py-3">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-high text-muted">
-                        <Landmark className="size-4" aria-hidden />
+                      <span
+                        aria-hidden
+                        className={`grid size-9 shrink-0 place-items-center rounded-lg bg-surface-high text-[11px] font-bold ${
+                          account.type === "bank"
+                            ? "text-primary"
+                            : account.type === "ewallet"
+                              ? "text-transfer"
+                              : account.type === "cash"
+                                ? "text-income"
+                                : "text-muted"
+                        }`}
+                      >
+                        {account.name.slice(0, 2).toUpperCase()}
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="flex items-center gap-2 text-sm font-medium">
@@ -189,6 +202,7 @@ export function ProfileView() {
               <CardHeader
                 title="Kategori"
                 description="Dipakai untuk mengelompokkan pemasukan dan pengeluaran."
+                icon={<Tag className="size-5" />}
                 action={
                   <Button size="sm" variant="secondary" icon={<Plus className="size-3.5" aria-hidden />} onClick={() => setCategoryOpen(true)}>
                     Tambah
@@ -196,9 +210,12 @@ export function ProfileView() {
                 }
               />
               <CardBody>
-                <ul className="divide-y divide-line">
+                <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">
                   {data.categories.map((category) => (
-                    <li key={category.id} className="flex items-center gap-3 py-2.5">
+                    <li
+                      key={category.id}
+                      className="flex min-w-0 items-center gap-3 rounded-lg border border-line bg-surface-low/60 px-3 py-2.5"
+                    >
                       <span
                         aria-hidden
                         className="size-3 shrink-0 rounded-full"
