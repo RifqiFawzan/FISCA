@@ -1,0 +1,1967 @@
+openapi: 3.0.3
+info:
+  title: FISCA API
+  version: 0.1.0
+  description: |
+    Kontrak HTTP FISCA (plan.md §7 dan §12.3).
+
+    Envelope sukses: `{"data": ..., "meta": {...}}`.
+    Envelope gagal: `{"error": {"code", "message", "details?", "requestId"}}`.
+
+    Semua nominal integer rupiah (BIGINT), semua agregasi dihitung di server.
+    Operasi tulis bertanda `Idempotency-Key` wajib. Respons divalidasi terhadap
+    dokumen ini oleh `internal/server/contract_test.go`; mengubah DTO tanpa
+    memperbarui kontrak membuat test gagal.
+servers:
+  - url: http://localhost:8080
+    description: Stack Docker lokal
+tags:
+  - name: system
+  - name: identity
+  - name: accounts
+  - name: categories
+  - name: transactions
+  - name: analytics
+  - name: budgets
+  - name: proposals
+  - name: assistant
+  - name: speech
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      tags: [system]
+      summary: Liveness dan ping database
+      security: []
+      responses:
+        '200':
+          description: Sehat
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/Health'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '503':
+          description: Database tidak terjangkau (status degraded)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/Health'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+
+  /api/v1/me:
+    get:
+      tags: [identity]
+      summary: Profil pengguna
+      responses:
+        '200':
+          description: Profil
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/User'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    patch:
+      tags: [identity]
+      summary: Perbarui profil
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateMeInput'}
+      responses:
+        '200':
+          description: Profil diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/User'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/v1/accounts:
+    get:
+      tags: [accounts]
+      summary: Daftar akun dengan saldo turunan ledger
+      responses:
+        '200':
+          description: Daftar akun
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: '#/components/schemas/Account'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      tags: [accounts]
+      summary: Buat akun
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateAccountInput'}
+      responses:
+        '201':
+          description: Akun dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/Account'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/v1/accounts/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    patch:
+      tags: [accounts]
+      summary: Ubah nama atau jenis akun (saldo tidak bisa diubah)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateAccountInput'}
+      responses:
+        '200':
+          description: Akun diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/Account'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+    delete:
+      tags: [accounts]
+      summary: Arsipkan akun
+      responses:
+        '200':
+          description: Akun diarsipkan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/ArchivedFlag'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/v1/accounts/{id}/default:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    post:
+      tags: [accounts]
+      summary: Jadikan akun sebagai akun utama
+      responses:
+        '200':
+          description: Akun utama diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/Account'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/v1/categories:
+    get:
+      tags: [categories]
+      summary: Daftar kategori
+      parameters:
+        - name: kind
+          in: query
+          schema: {$ref: '#/components/schemas/CategoryKind'}
+      responses:
+        '200':
+          description: Daftar kategori
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: '#/components/schemas/Category'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+    post:
+      tags: [categories]
+      summary: Buat kategori
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateCategoryInput'}
+      responses:
+        '201':
+          description: Kategori dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/Category'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/v1/categories/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    patch:
+      tags: [categories]
+      summary: Ubah kategori
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateCategoryInput'}
+      responses:
+        '200':
+          description: Kategori diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/Category'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+    delete:
+      tags: [categories]
+      summary: Arsipkan kategori
+      responses:
+        '200':
+          description: Kategori diarsipkan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/ArchivedFlag'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/v1/transactions:
+    get:
+      tags: [transactions]
+      summary: Daftar transaksi (kursor)
+      parameters:
+        - $ref: '#/components/parameters/TypeFilter'
+        - $ref: '#/components/parameters/CategoryId'
+        - name: accountId
+          in: query
+          schema: {type: string}
+        - name: q
+          in: query
+          schema: {type: string}
+        - $ref: '#/components/parameters/Period'
+        - name: from
+          in: query
+          schema: {type: string, format: date-time}
+        - name: to
+          in: query
+          schema: {type: string, format: date-time}
+        - name: cursor
+          in: query
+          schema: {type: string}
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Halaman transaksi; kursor berikutnya di `meta.nextCursor`
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/TransactionPage'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      tags: [transactions]
+      summary: Catat transaksi (wajib Idempotency-Key)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateTransactionInput'}
+      responses:
+        '201':
+          description: Transaksi dicatat beserta peringatan budget
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/CreateTransactionResult'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '409':
+          description: Key sudah dipakai dengan body berbeda (IDEMPOTENCY_MISMATCH) atau permintaan sedang diproses (CONFLICT)
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ErrorResponse'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/v1/transactions/search:
+    get:
+      tags: [transactions]
+      summary: Pencarian bahasa alami menjadi filter terstruktur
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: {type: string}
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Filter yang dibaca + hasilnya
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/SearchResult'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /api/v1/transactions/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    get:
+      tags: [transactions]
+      summary: Detail transaksi + jejak audit
+      responses:
+        '200':
+          description: Detail
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/TransactionDetail'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      tags: [transactions]
+      summary: Ubah transaksi (optimistik, butuh version)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateTransactionInput'}
+      responses:
+        '200':
+          description: Transaksi diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/Transaction'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/v1/transactions/{id}/void:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    post:
+      tags: [transactions]
+      summary: Batalkan transaksi (status voided, bukan hapus)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/VoidTransactionInput'}
+      responses:
+        '200':
+          description: Transaksi dibatalkan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/Transaction'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/v1/analytics/dashboard:
+    get:
+      tags: [analytics]
+      summary: Satu round-trip untuk layar Beranda
+      parameters:
+        - $ref: '#/components/parameters/Period'
+      responses:
+        '200':
+          description: Ringkasan, akun, transaksi terbaru, kategori, tren, snapshot budget
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/Dashboard'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /api/v1/analytics/financial-summary:
+    get:
+      tags: [analytics]
+      summary: Ringkasan periode vs periode sebelumnya
+      parameters:
+        - $ref: '#/components/parameters/Period'
+      responses:
+        '200':
+          description: Ringkasan keuangan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/FinancialSummary'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /api/v1/analytics/largest-transactions:
+    get:
+      tags: [analytics]
+      summary: Transaksi terbesar (query database)
+      parameters:
+        - $ref: '#/components/parameters/Period'
+        - $ref: '#/components/parameters/TypeFilter'
+        - $ref: '#/components/parameters/CategoryId'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Transaksi terbesar
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/LargestTransactions'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /api/v1/analytics/unusual-spending:
+    get:
+      tags: [analytics]
+      summary: Pengeluaran tidak biasa (median + MAD) dengan `sufficientData`
+      parameters:
+        - $ref: '#/components/parameters/Period'
+        - $ref: '#/components/parameters/CategoryId'
+      responses:
+        '200':
+          description: Analisis anomali
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/UnusualSpending'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /api/v1/analytics/spending-comparison:
+    get:
+      tags: [analytics]
+      summary: Periode ini vs periode sebelumnya per kategori
+      parameters:
+        - $ref: '#/components/parameters/Period'
+      responses:
+        '200':
+          description: Perbandingan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/SpendingComparison'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /api/v1/analytics/cash-flow:
+    get:
+      tags: [analytics]
+      summary: Arus kas per bucket
+      parameters:
+        - $ref: '#/components/parameters/Period'
+        - name: bucket
+          in: query
+          schema: {type: string, enum: [day, week, month]}
+      responses:
+        '200':
+          description: Titik arus kas
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/CashFlow'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /api/v1/budgets:
+    get:
+      tags: [budgets]
+      summary: Daftar budget dengan status terhitung
+      responses:
+        '200':
+          description: Daftar budget
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: '#/components/schemas/Budget'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      tags: [budgets]
+      summary: Buat budget satu periode (unik per pengguna)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateBudgetInput'}
+      responses:
+        '201':
+          description: Budget dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/Budget'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/v1/budgets/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    get:
+      tags: [budgets]
+      summary: Detail budget
+      responses:
+        '200':
+          description: Budget
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/Budget'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      tags: [budgets]
+      summary: Ubah limit/alokasi (optimistik, butuh version)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateBudgetInput'}
+      responses:
+        '200':
+          description: Budget diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/Budget'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/v1/budgets/{id}/status:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    get:
+      tags: [budgets]
+      summary: Status budget (actual, remaining, unallocated, per kategori)
+      responses:
+        '200':
+          description: Status
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/Budget'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/v1/budget-proposals:
+    get:
+      tags: [proposals]
+      summary: Daftar proposal budget
+      parameters:
+        - name: status
+          in: query
+          schema: {type: string, enum: [pending, approved, rejected, expired, stale]}
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Daftar proposal
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: '#/components/schemas/BudgetProposal'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      tags: [proposals]
+      summary: Usulkan perubahan budget (belum berlaku)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateProposalInput'}
+      responses:
+        '201':
+          description: Proposal dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/BudgetProposal'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/v1/budget-proposals/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    get:
+      tags: [proposals]
+      summary: Detail proposal + dampaknya
+      responses:
+        '200':
+          description: Proposal
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/BudgetProposal'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      tags: [proposals]
+      summary: Ubah draft proposal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateProposalInput'}
+      responses:
+        '200':
+          description: Proposal diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/BudgetProposal'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/v1/budget-proposals/{id}/approve:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    post:
+      tags: [proposals]
+      summary: Setujui proposal (menerapkan perubahan + audit)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ApproveProposalInput'}
+      responses:
+        '200':
+          description: Budget diterapkan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/Budget'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409':
+          description: Version basi (BUDGET_STALE), proposal sudah diputuskan, atau key bentrok (CONFLICT/IDEMPOTENCY_MISMATCH)
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ErrorResponse'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/v1/budget-proposals/{id}/reject:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    post:
+      tags: [proposals]
+      summary: Tolak proposal
+      responses:
+        '200':
+          description: Proposal ditolak
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/BudgetProposal'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+
+  /api/v1/savings-goals:
+    get:
+      tags: [savings]
+      summary: Daftar target tabungan dengan progres dari saldo akun terkait
+      responses:
+        '200':
+          description: Daftar target
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: '#/components/schemas/SavingsGoal'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      tags: [savings]
+      summary: Buat target tabungan (wajib menautkan satu akun)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateSavingsGoalInput'}
+      responses:
+        '201':
+          description: Target dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/SavingsGoal'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/v1/savings-goals/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    get:
+      tags: [savings]
+      summary: Detail target; `monthly` menambahkan simulasi kontribusi
+      parameters:
+        - name: monthly
+          in: query
+          description: Kontribusi bulanan yang disimulasikan (Rp/bulan)
+          schema: {type: integer, format: int64, minimum: 1}
+      responses:
+        '200':
+          description: Target
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/SavingsGoal'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+    patch:
+      tags: [savings]
+      summary: Ubah nama/target/tenggat/akun (optimistik, butuh version)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateSavingsGoalInput'}
+      responses:
+        '200':
+          description: Target diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/SavingsGoal'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+    delete:
+      tags: [savings]
+      summary: Arsipkan target (tidak menyentuh uang)
+      responses:
+        '200':
+          description: Target diarsipkan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/ArchivedFlag'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/v1/purchase-advisor:
+    get:
+      tags: [savings]
+      summary: Simulasi kemampuan membeli (angka dari ledger, bukan karangan AI)
+      parameters:
+        - name: price
+          in: query
+          required: true
+          description: Harga barang yang direncanakan (Rp)
+          schema: {type: integer, format: int64, minimum: 1}
+      responses:
+        '200':
+          description: Analisis keterjangkauan beserta asumsi dan keterbatasan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/PurchaseAdvisor'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/v1/assistant/messages:
+    post:
+      tags: [assistant]
+      summary: Kirim pesan chat/voice, dapat balasan + kartu
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AssistantRequest'}
+      responses:
+        '200':
+          description: Balasan asisten beserta kartu
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/AssistantReply'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/v1/assistant/conversations:
+    get:
+      tags: [assistant]
+      summary: Daftar percakapan
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Daftar percakapan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: '#/components/schemas/Conversation'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /api/v1/assistant/conversations/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    get:
+      tags: [assistant]
+      summary: Riwayat pesan satu percakapan
+      responses:
+        '200':
+          description: Pesan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: '#/components/schemas/AssistantMessage'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    delete:
+      tags: [assistant]
+      summary: Hapus percakapan
+      responses:
+        '200':
+          description: Percakapan dihapus
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/DeletedFlag'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/v1/speech/transcriptions:
+    post:
+      tags: [speech]
+      summary: Transkripsi audio (multipart, field `audio`)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [audio]
+              properties:
+                audio:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Transkrip
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: {$ref: '#/components/schemas/Transcript'}
+                  meta: {$ref: '#/components/schemas/Meta'}
+                additionalProperties: false
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+        '503':
+          description: Provider STT belum dikonfigurasi (AI_UNAVAILABLE)
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ErrorResponse'}
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: JWT RS256 (mode `jwt`) atau token `dev:<uuid>` (mode `dev`, lokal saja)
+
+  parameters:
+    PathId:
+      name: id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: {type: string, maxLength: 128}
+    Period:
+      name: period
+      in: query
+      description: '`this_month`, `last_month`, `7d`, `30d`, `90d`, `1y`, `Nm`, `YYYY-MM`, `YYYY-MM-DD`'
+      schema: {type: string}
+    Limit:
+      name: limit
+      in: query
+      schema: {type: integer, minimum: 1, maximum: 100}
+    TypeFilter:
+      name: type
+      in: query
+      schema: {$ref: '#/components/schemas/TransactionType'}
+    CategoryId:
+      name: categoryId
+      in: query
+      schema: {type: string, format: uuid}
+
+  responses:
+    Unauthorized:
+      description: Token tidak ada atau tidak valid (UNAUTHORIZED)
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorResponse'}
+    NotFound:
+      description: Sumber tidak ditemukan untuk pengguna ini (NOT_FOUND)
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorResponse'}
+    Conflict:
+      description: Bentrok versi/key (CONFLICT, BUDGET_STALE, IDEMPOTENCY_MISMATCH)
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorResponse'}
+    ValidationError:
+      description: Input tidak valid (VALIDATION_ERROR)
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorResponse'}
+
+  schemas:
+    ErrorCode:
+      type: string
+      description: Kode error baku (plan.md §7.1)
+      enum:
+        - VALIDATION_ERROR
+        - UNAUTHORIZED
+        - FORBIDDEN
+        - NOT_FOUND
+        - CONFLICT
+        - IDEMPOTENCY_MISMATCH
+        - BUDGET_STALE
+        - RATE_LIMITED
+        - AI_UNAVAILABLE
+        - INTERNAL
+
+    ErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code: {$ref: '#/components/schemas/ErrorCode'}
+        message: {type: string}
+        details: {type: object, nullable: true}
+        requestId: {type: string}
+      additionalProperties: false
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error: {$ref: '#/components/schemas/ErrorBody'}
+      additionalProperties: false
+
+    Meta:
+      type: object
+      properties:
+        requestId: {type: string}
+        nextCursor: {type: string}
+        total: {type: integer, nullable: true}
+      additionalProperties: false
+
+    Health:
+      type: object
+      required: [status, db, version, env]
+      properties:
+        status: {type: string, enum: [ok, degraded]}
+        db: {type: string, enum: [ok, down]}
+        version: {type: string}
+        env: {type: string}
+        checkedAt: {type: string, format: date-time}
+      additionalProperties: false
+
+    ArchivedFlag:
+      type: object
+      required: [archived]
+      properties:
+        archived: {type: boolean}
+      additionalProperties: false
+
+    DeletedFlag:
+      type: object
+      required: [deleted]
+      properties:
+        deleted: {type: boolean}
+      additionalProperties: false
+
+    User:
+      type: object
+      required: [id, email, displayName, timezone, locale, baseCurrency, onboardedAt, createdAt]
+      properties:
+        id: {type: string, format: uuid}
+        email: {type: string}
+        displayName: {type: string}
+        timezone: {type: string}
+        locale: {type: string}
+        baseCurrency: {type: string}
+        onboardedAt: {type: string, format: date-time, nullable: true}
+        createdAt: {type: string, format: date-time}
+      additionalProperties: false
+
+    UpdateMeInput:
+      type: object
+      properties:
+        displayName: {type: string}
+        timezone: {type: string}
+        locale: {type: string}
+        completeOnboarding: {type: boolean}
+      additionalProperties: false
+
+    Account:
+      type: object
+      required: [id, name, type, openingBalance, balance, isDefault, createdAt]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        type: {type: string, enum: [cash, bank, ewallet, other]}
+        openingBalance: {type: integer, format: int64}
+        balance: {type: integer, format: int64, description: Turunan ledger, bukan kolom yang bisa diubah}
+        isDefault: {type: boolean}
+        createdAt: {type: string, format: date-time}
+      additionalProperties: false
+
+    CreateAccountInput:
+      type: object
+      required: [name, type]
+      properties:
+        name: {type: string}
+        type: {type: string, enum: [cash, bank, ewallet, other]}
+        openingBalance: {type: integer, format: int64}
+        isDefault: {type: boolean}
+      additionalProperties: false
+
+    UpdateAccountInput:
+      type: object
+      properties:
+        name: {type: string}
+        type: {type: string, enum: [cash, bank, ewallet, other]}
+      additionalProperties: false
+
+    CategoryKind:
+      type: string
+      enum: [income, expense]
+
+    Category:
+      type: object
+      required: [id, name, kind, icon, color, isDefault, createdAt]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        kind: {$ref: '#/components/schemas/CategoryKind'}
+        icon: {type: string, nullable: true}
+        color: {type: string, nullable: true}
+        isDefault: {type: boolean}
+        createdAt: {type: string, format: date-time}
+      additionalProperties: false
+
+    CreateCategoryInput:
+      type: object
+      required: [name, kind]
+      properties:
+        name: {type: string}
+        kind: {$ref: '#/components/schemas/CategoryKind'}
+        icon: {type: string}
+        color: {type: string}
+      additionalProperties: false
+
+    UpdateCategoryInput:
+      type: object
+      properties:
+        name: {type: string}
+        icon: {type: string}
+        color: {type: string}
+      additionalProperties: false
+
+    TransactionType:
+      type: string
+      enum: [income, expense, transfer]
+
+    Transaction:
+      type: object
+      required:
+        [id, type, amount, currency, description, categoryId, categoryName, categoryColor,
+         categoryIcon, accountId, accountName, fromAccountId, fromAccountName, toAccountId,
+         toAccountName, paymentMethod, merchantName, occurredAt, notes, source, status,
+         voidedAt, voidReason, version, createdAt, updatedAt]
+      properties:
+        id: {type: string, format: uuid}
+        type: {$ref: '#/components/schemas/TransactionType'}
+        amount: {type: integer, format: int64}
+        currency: {type: string}
+        description: {type: string}
+        categoryId: {type: string, format: uuid, nullable: true}
+        categoryName: {type: string, nullable: true}
+        categoryColor: {type: string, nullable: true}
+        categoryIcon: {type: string, nullable: true}
+        accountId: {type: string, format: uuid, nullable: true}
+        accountName: {type: string, nullable: true}
+        fromAccountId: {type: string, format: uuid, nullable: true}
+        fromAccountName: {type: string, nullable: true}
+        toAccountId: {type: string, format: uuid, nullable: true}
+        toAccountName: {type: string, nullable: true}
+        paymentMethod: {type: string, nullable: true}
+        merchantName: {type: string, nullable: true}
+        occurredAt: {type: string, format: date-time}
+        notes: {type: string, nullable: true}
+        source: {type: string, enum: [manual, voice, chat]}
+        status: {type: string, enum: [active, voided]}
+        voidedAt: {type: string, format: date-time, nullable: true}
+        voidReason: {type: string, nullable: true}
+        version: {type: integer}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+      additionalProperties: false
+
+    Warning:
+      type: object
+      required: [type, message]
+      properties:
+        type: {type: string, enum: [BUDGET_WARNING, BUDGET_EXCEEDED]}
+        message: {type: string}
+        budgetId: {type: string, format: uuid}
+        categoryId: {type: string, format: uuid}
+        exceededAmount: {type: integer, format: int64}
+      additionalProperties: false
+
+    CreateTransactionInput:
+      type: object
+      required: [type, amount, description]
+      properties:
+        type: {$ref: '#/components/schemas/TransactionType'}
+        amount: {type: integer, format: int64, minimum: 1}
+        description: {type: string}
+        categoryId: {type: string, format: uuid}
+        accountId: {type: string, format: uuid}
+        fromAccountId: {type: string, format: uuid}
+        toAccountId: {type: string, format: uuid}
+        paymentMethod: {type: string}
+        merchantName: {type: string}
+        occurredAt: {type: string, format: date-time}
+        notes: {type: string}
+        source: {type: string, enum: [manual, voice, chat]}
+      additionalProperties: false
+
+    TransactionDraft:
+      type: object
+      description: |
+        Salinan CreateTransactionInput yang tersimpan pada klarifikasi. Semua
+        field ikut terkirim (null bila belum diisi) sehingga draft bisa
+        dilengkapi pada balasan berikutnya.
+      required:
+        [type, amount, description, categoryId, accountId, fromAccountId, toAccountId,
+         paymentMethod, merchantName, occurredAt, notes, source]
+      properties:
+        type: {$ref: '#/components/schemas/TransactionType'}
+        amount: {type: integer, format: int64}
+        description: {type: string}
+        categoryId: {type: string, format: uuid, nullable: true}
+        accountId: {type: string, format: uuid, nullable: true}
+        fromAccountId: {type: string, format: uuid, nullable: true}
+        toAccountId: {type: string, format: uuid, nullable: true}
+        paymentMethod: {type: string, nullable: true}
+        merchantName: {type: string, nullable: true}
+        occurredAt: {type: string, format: date-time, nullable: true}
+        notes: {type: string, nullable: true}
+        source: {type: string, enum: [manual, voice, chat]}
+      additionalProperties: false
+
+    UpdateTransactionInput:
+      type: object
+      required: [version]
+      properties:
+        version: {type: integer}
+        description: {type: string}
+        amount: {type: integer, format: int64}
+        categoryId: {type: string, format: uuid}
+        occurredAt: {type: string, format: date-time}
+        notes: {type: string}
+      additionalProperties: false
+
+    VoidTransactionInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: {type: string}
+      additionalProperties: false
+
+    CreateTransactionResult:
+      type: object
+      required: [transaction, warnings]
+      properties:
+        transaction: {$ref: '#/components/schemas/Transaction'}
+        warnings:
+          type: array
+          items: {$ref: '#/components/schemas/Warning'}
+      additionalProperties: false
+
+    TransactionPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/Transaction'}
+        nextCursor: {type: string}
+      additionalProperties: false
+
+    AuditEntry:
+      type: object
+      required: [id, actor, action, before, after, createdAt]
+      properties:
+        id: {type: integer, format: int64}
+        actor: {type: string, enum: [user, ai, system]}
+        action: {type: string, enum: [create, update, void, archive, approve_proposal, reject]}
+        before: {type: object, nullable: true}
+        after: {type: object, nullable: true}
+        createdAt: {type: string, format: date-time}
+      additionalProperties: false
+
+    TransactionDetail:
+      type: object
+      required: [transaction, audit]
+      properties:
+        transaction: {$ref: '#/components/schemas/Transaction'}
+        audit:
+          type: array
+          items: {$ref: '#/components/schemas/AuditEntry'}
+      additionalProperties: false
+
+    SearchFilters:
+      type: object
+      required: [interpreted]
+      properties:
+        period: {type: string}
+        type: {$ref: '#/components/schemas/TransactionType'}
+        categoryId: {type: string, format: uuid}
+        categoryName: {type: string}
+        minAmount: {type: integer, format: int64}
+        maxAmount: {type: integer, format: int64}
+        text: {type: string}
+        sort: {type: string}
+        interpreted: {type: string, description: Teks filter yang ditampilkan ke pengguna}
+      additionalProperties: false
+
+    SearchResult:
+      type: object
+      required: [filters, items]
+      properties:
+        filters: {$ref: '#/components/schemas/SearchFilters'}
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/Transaction'}
+        nextCursor: {type: string}
+      additionalProperties: false
+
+    Period:
+      type: object
+      required: [key, label, start, end]
+      properties:
+        key: {type: string}
+        label: {type: string}
+        start: {type: string, format: date-time}
+        end: {type: string, format: date-time, description: Batas eksklusif}
+      additionalProperties: false
+
+    Summary:
+      type: object
+      required: [income, expense, net]
+      properties:
+        income: {type: integer, format: int64}
+        expense: {type: integer, format: int64}
+        net: {type: integer, format: int64}
+      additionalProperties: false
+
+    CategorySpend:
+      type: object
+      required: [categoryId, name, color, total, transactionCount, percent]
+      properties:
+        categoryId: {type: string, format: uuid, nullable: true}
+        name: {type: string}
+        color: {type: string}
+        total: {type: integer, format: int64}
+        transactionCount: {type: integer, format: int64}
+        percent: {type: number}
+      additionalProperties: false
+
+    MonthlyTotal:
+      type: object
+      required: [month, income, expense]
+      properties:
+        month: {type: string, format: date}
+        income: {type: integer, format: int64}
+        expense: {type: integer, format: int64}
+      additionalProperties: false
+
+    Dashboard:
+      type: object
+      required: [period, summary, accounts, recentTransactions, topCategories, monthlyTrend, budget]
+      properties:
+        period: {$ref: '#/components/schemas/Period'}
+        summary: {$ref: '#/components/schemas/Summary'}
+        accounts:
+          type: array
+          items: {$ref: '#/components/schemas/Account'}
+        recentTransactions:
+          type: array
+          items: {$ref: '#/components/schemas/Transaction'}
+        topCategories:
+          type: array
+          items: {$ref: '#/components/schemas/CategorySpend'}
+        monthlyTrend:
+          type: array
+          items: {$ref: '#/components/schemas/MonthlyTotal'}
+        budget:
+          oneOf:
+            - $ref: '#/components/schemas/Budget'
+            - type: 'null'
+      additionalProperties: false
+
+    FinancialSummary:
+      type: object
+      required: [period, summary, previous, delta, categories, monthlyTrend]
+      properties:
+        period: {$ref: '#/components/schemas/Period'}
+        summary: {$ref: '#/components/schemas/Summary'}
+        previous: {$ref: '#/components/schemas/Summary'}
+        delta: {$ref: '#/components/schemas/Summary'}
+        categories:
+          type: array
+          items: {$ref: '#/components/schemas/CategorySpend'}
+        monthlyTrend:
+          type: array
+          items: {$ref: '#/components/schemas/MonthlyTotal'}
+      additionalProperties: false
+
+    LargestTransactions:
+      type: object
+      required: [period, items]
+      properties:
+        period: {$ref: '#/components/schemas/Period'}
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/Transaction'}
+      additionalProperties: false
+
+    UnusualFinding:
+      type: object
+      required: [categoryId, categoryName, currentAmount, baselineMedian, deviation, message]
+      properties:
+        categoryId: {type: string, format: uuid, nullable: true}
+        categoryName: {type: string}
+        currentAmount: {type: integer, format: int64}
+        baselineMedian: {type: integer, format: int64}
+        deviation: {type: number}
+        message: {type: string}
+      additionalProperties: false
+
+    UnusualSpending:
+      type: object
+      required: [period, sufficientData, method, monthsAnalyzed, findings, limitations]
+      properties:
+        period: {$ref: '#/components/schemas/Period'}
+        sufficientData: {type: boolean}
+        method: {type: string}
+        monthsAnalyzed: {type: integer}
+        findings:
+          type: array
+          items: {$ref: '#/components/schemas/UnusualFinding'}
+        limitations:
+          type: array
+          items: {type: string}
+      additionalProperties: false
+
+    CategoryDelta:
+      type: object
+      required: [categoryId, name, current, previous, delta, percent]
+      properties:
+        categoryId: {type: string, format: uuid, nullable: true}
+        name: {type: string}
+        current: {type: integer, format: int64}
+        previous: {type: integer, format: int64}
+        delta: {type: integer, format: int64}
+        percent: {type: number}
+      additionalProperties: false
+
+    SpendingComparison:
+      type: object
+      required: [period, previousPeriod, current, previous, delta, categories]
+      properties:
+        period: {$ref: '#/components/schemas/Period'}
+        previousPeriod: {$ref: '#/components/schemas/Period'}
+        current: {$ref: '#/components/schemas/Summary'}
+        previous: {$ref: '#/components/schemas/Summary'}
+        delta: {$ref: '#/components/schemas/Summary'}
+        categories:
+          type: array
+          items: {$ref: '#/components/schemas/CategoryDelta'}
+      additionalProperties: false
+
+    CashFlowPoint:
+      type: object
+      required: [bucketStart, income, expense, net]
+      properties:
+        bucketStart: {type: string, format: date-time}
+        income: {type: integer, format: int64}
+        expense: {type: integer, format: int64}
+        net: {type: integer, format: int64}
+      additionalProperties: false
+
+    CashFlow:
+      type: object
+      required: [period, bucket, points]
+      properties:
+        period: {$ref: '#/components/schemas/Period'}
+        bucket: {type: string, enum: [day, week, month]}
+        points:
+          type: array
+          items: {$ref: '#/components/schemas/CashFlowPoint'}
+      additionalProperties: false
+
+    BudgetCategoryStatus:
+      type: object
+      required: [categoryId, name, limit, spent, remaining, percent, status]
+      properties:
+        categoryId: {type: string, format: uuid}
+        name: {type: string}
+        limit: {type: integer, format: int64}
+        spent: {type: integer, format: int64}
+        remaining: {type: integer, format: int64}
+        percent: {type: number}
+        status: {type: string, enum: [ok, warning, exceeded]}
+      additionalProperties: false
+
+    Budget:
+      type: object
+      required:
+        [id, periodStart, periodEnd, overallLimit, currency, status, version, spent,
+         remaining, percent, unallocated, categories, createdAt, updatedAt]
+      properties:
+        id: {type: string, format: uuid}
+        periodStart: {type: string, format: date}
+        periodEnd: {type: string, format: date}
+        overallLimit: {type: integer, format: int64}
+        currency: {type: string}
+        status: {type: string, enum: [active, archived]}
+        version: {type: integer}
+        spent: {type: integer, format: int64}
+        remaining: {type: integer, format: int64}
+        percent: {type: number}
+        unallocated: {type: integer, format: int64}
+        categories:
+          type: array
+          items: {$ref: '#/components/schemas/BudgetCategoryStatus'}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+      additionalProperties: false
+
+    AllocationInput:
+      type: object
+      required: [categoryId, limitAmount]
+      properties:
+        categoryId: {type: string, format: uuid}
+        limitAmount: {type: integer, format: int64}
+      additionalProperties: false
+
+    CreateBudgetInput:
+      type: object
+      required: [overallLimit]
+      properties:
+        period: {type: string, description: Kosong = bulan berjalan}
+        overallLimit: {type: integer, format: int64, minimum: 1}
+        allocations:
+          type: array
+          items: {$ref: '#/components/schemas/AllocationInput'}
+      additionalProperties: false
+
+    UpdateBudgetInput:
+      type: object
+      required: [version]
+      properties:
+        version: {type: integer}
+        overallLimit: {type: integer, format: int64}
+        allocations:
+          type: array
+          items: {$ref: '#/components/schemas/AllocationInput'}
+      additionalProperties: false
+
+    BudgetChanges:
+      type: object
+      properties:
+        overallLimit: {type: integer, format: int64}
+        allocations:
+          type: array
+          items: {$ref: '#/components/schemas/AllocationInput'}
+      additionalProperties: false
+
+    BudgetProposal:
+      type: object
+      required: [id, budgetId, baseVersion, status, changes, rationale, impact, expiresAt, decidedAt, createdAt]
+      properties:
+        id: {type: string, format: uuid}
+        budgetId: {type: string, format: uuid}
+        baseVersion: {type: integer}
+        status: {type: string, enum: [pending, approved, rejected, expired, stale]}
+        changes: {$ref: '#/components/schemas/BudgetChanges'}
+        rationale: {type: string, nullable: true}
+        impact: {type: object, nullable: true}
+        expiresAt: {type: string, format: date-time}
+        decidedAt: {type: string, format: date-time, nullable: true}
+        createdAt: {type: string, format: date-time}
+      additionalProperties: false
+
+    CreateProposalInput:
+      type: object
+      required: [budgetId, changes]
+      properties:
+        budgetId: {type: string, format: uuid}
+        changes: {$ref: '#/components/schemas/BudgetChanges'}
+        rationale: {type: string}
+      additionalProperties: false
+
+    UpdateProposalInput:
+      type: object
+      properties:
+        changes: {$ref: '#/components/schemas/BudgetChanges'}
+        rationale: {type: string}
+      additionalProperties: false
+
+    ApproveProposalInput:
+      type: object
+      properties:
+        baseVersion: {type: integer}
+      additionalProperties: false
+
+    SavingsProjection:
+      type: object
+      description: Simulasi "kalau saya menabung X per bulan" (PRD §10.4).
+      required: [monthlyContribution, monthsToTarget, projectedOnDeadline, achievableByDeadline]
+      properties:
+        monthlyContribution: {type: integer, format: int64}
+        monthsToTarget:
+          type: integer
+          description: Bulan yang dibutuhkan untuk mencapai target pada laju ini, tanpa batas tenggat
+        projectedOnDeadline: {type: integer, format: int64}
+        achievableByDeadline: {type: boolean}
+      additionalProperties: false
+
+    SavingsGoal:
+      type: object
+      description: |
+        Target tabungan. Progres (`saved`) selalu dihitung dari saldo akun yang
+        ditautkan, bukan dari saldo tersimpan, agar uang tidak dihitung dua kali
+        (PRD O-17).
+      required:
+        [id, name, targetAmount, deadline, accountId, accountName, saved, remaining,
+         percent, status, monthsLeft, requiredMonthly, version, createdAt, updatedAt]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        targetAmount: {type: integer, format: int64, minimum: 1}
+        deadline: {type: string, format: date}
+        accountId: {type: string, format: uuid, nullable: true}
+        accountName: {type: string, nullable: true}
+        saved: {type: integer, format: int64, description: Saldo akun terkait, dibatasi minimal 0}
+        remaining: {type: integer, format: int64}
+        percent: {type: number}
+        status: {type: string, enum: [on_track, at_risk, achieved, overdue]}
+        monthsLeft: {type: integer}
+        requiredMonthly: {type: integer, format: int64, description: Kontribusi per bulan agar tepat waktu}
+        projection: {$ref: '#/components/schemas/SavingsProjection'}
+        version: {type: integer}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+      additionalProperties: false
+
+    CreateSavingsGoalInput:
+      type: object
+      required: [name, targetAmount, deadline, accountId]
+      properties:
+        name: {type: string, maxLength: 120}
+        targetAmount: {type: integer, format: int64, minimum: 1}
+        deadline: {type: string, format: date, description: Harus setelah hari ini}
+        accountId: {type: string, format: uuid, description: Wajib; sumber progres}
+      additionalProperties: false
+
+    UpdateSavingsGoalInput:
+      type: object
+      required: [version]
+      properties:
+        version: {type: integer}
+        name: {type: string, maxLength: 120}
+        targetAmount: {type: integer, format: int64, minimum: 1}
+        deadline: {type: string, format: date}
+        accountId:
+          {type: string, format: uuid, description: Menautkan ulang ke akun lain; menghapus tautan tidak didukung}
+      additionalProperties: false
+
+    PurchaseAdvisor:
+      type: object
+      description: |
+        Simulasi keterjangkauan pembelian. Semua angka berasal dari ledger;
+        kewajiban yang belum dicatat dinyatakan sebagai keterbatasan, bukan
+        diasumsikan nol (PRD §10.6–10.7).
+      required:
+        [price, currency, available, reservedSavings, freeToSpend, remainingBudget,
+         averageMonthlyIncome, averageMonthlyExpense, monthsWithData, verdict,
+         projectedAfterPurchase, assumptions, limitations]
+      properties:
+        price: {type: integer, format: int64}
+        currency: {type: string}
+        available: {type: integer, format: int64, description: Total saldo seluruh akun aktif}
+        reservedSavings: {type: integer, format: int64, description: Kekurangan seluruh target tabungan}
+        freeToSpend: {type: integer, format: int64, description: available - reservedSavings}
+        remainingBudget: {type: integer, format: int64}
+        averageMonthlyIncome: {type: integer, format: int64}
+        averageMonthlyExpense: {type: integer, format: int64}
+        monthsWithData: {type: integer}
+        verdict: {type: string, enum: [affordable, tight, not_affordable]}
+        projectedAfterPurchase: {type: integer, format: int64}
+        assumptions:
+          type: array
+          items: {type: string}
+        limitations:
+          type: array
+          items: {type: string}
+      additionalProperties: false
+
+    AssistantCardType:
+      type: string
+      description: Kontrak visual asisten (plan.md §7.3)
+      enum:
+        - transaction_result
+        - clarification
+        - financial_summary
+        - historical_search
+        - largest_transaction
+        - unusual_spending
+        - budget_status
+        - budget_proposal
+        - recommendation
+        - error
+
+    AssistantRequest:
+      type: object
+      required: [text]
+      properties:
+        conversationId: {type: string, format: uuid}
+        text: {type: string, maxLength: 2000}
+        source: {type: string, enum: [text, voice]}
+      additionalProperties: false
+
+    AssistantCard:
+      type: object
+      required: [type, title]
+      properties:
+        type: {$ref: '#/components/schemas/AssistantCardType'}
+        title: {type: string}
+        body: {type: string}
+        amount: {type: integer, format: int64}
+        currency: {type: string}
+        needsReply: {type: boolean}
+        transaction: {$ref: '#/components/schemas/Transaction'}
+        summary: {$ref: '#/components/schemas/Summary'}
+        period: {$ref: '#/components/schemas/Period'}
+        budget: {$ref: '#/components/schemas/Budget'}
+        proposal: {$ref: '#/components/schemas/BudgetProposal'}
+        unusual: {$ref: '#/components/schemas/UnusualSpending'}
+        categories:
+          type: array
+          items: {$ref: '#/components/schemas/CategorySpend'}
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/Transaction'}
+        warnings:
+          type: array
+          items: {$ref: '#/components/schemas/Warning'}
+        missingFields:
+          type: array
+          items: {type: string}
+        draftId: {type: string, format: uuid}
+        draft: {$ref: '#/components/schemas/TransactionDraft'}
+      additionalProperties: false
+
+    AssistantReply:
+      type: object
+      required: [conversationId, messageId, reply, card, toolTrace]
+      properties:
+        conversationId: {type: string, format: uuid}
+        messageId: {type: string, format: uuid}
+        reply: {type: string}
+        card: {$ref: '#/components/schemas/AssistantCard'}
+        toolTrace:
+          type: array
+          items: {type: string}
+      additionalProperties: false
+
+    Conversation:
+      type: object
+      required: [id, title, createdAt, lastMessageAt]
+      properties:
+        id: {type: string, format: uuid}
+        title: {type: string, nullable: true}
+        createdAt: {type: string, format: date-time}
+        lastMessageAt: {type: string, format: date-time}
+      additionalProperties: false
+
+    AssistantMessage:
+      type: object
+      required: [id, role, content, createdAt]
+      properties:
+        id: {type: string, format: uuid}
+        role: {type: string, enum: [user, assistant]}
+        content: {type: string, nullable: true}
+        card: {$ref: '#/components/schemas/AssistantCard'}
+        createdAt: {type: string, format: date-time}
+      additionalProperties: false
+
+    Transcript:
+      type: object
+      required: [transcript, durationMs]
+      properties:
+        transcript: {type: string}
+        durationMs: {type: integer}
+      additionalProperties: false

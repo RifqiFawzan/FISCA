@@ -1,0 +1,80 @@
+version: "3"
+
+vars:
+  COMPOSE: docker compose --env-file .env -f infra/docker-compose.yml
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+
+  dev:
+    desc: Host hot-reload mode (Postgres in Docker, API + web on host)
+    cmds:
+      - task: db:up
+      - task: db:migrate
+      - task: db:seed
+      - npm run dev
+
+  up:
+    desc: Build and start the full Docker stack (db + db-init + api + web)
+    cmds:
+      - npm run stack:up
+
+  down:
+    desc: Stop the full Docker stack (keeps the data volume)
+    cmds:
+      - npm run stack:down
+
+  logs:
+    desc: Follow API + web container logs
+    cmds:
+      - npm run stack:logs
+
+  db:up:
+    desc: Start PostgreSQL 17 via Docker Compose
+    cmds:
+      - "{{.COMPOSE}} up -d"
+
+  db:down:
+    desc: Stop PostgreSQL (keeps data volume)
+    cmds:
+      - "{{.COMPOSE}} down"
+
+  db:migrate:
+    desc: Apply goose migrations
+    cmds:
+      - npm run db:migrate
+
+  db:rollback:
+    desc: Roll back the last migration
+    cmds:
+      - npm run db:rollback
+
+  db:status:
+    desc: Show migration status
+    cmds:
+      - npm run db:status
+
+  db:seed:
+    desc: Load development fixtures
+    cmds:
+      - npm run db:seed
+
+  test:
+    desc: Run backend tests and frontend lint
+    cmds:
+      - npm run test:api
+      - npm run lint:web
+
+  test:e2e:
+    desc: Playwright E2E against the running Docker stack (desktop + mobile)
+    cmds:
+      - npm run test:e2e
+
+  build:
+    desc: Build the web app and compile the API
+    cmds:
+      - npm run build:web
+      - cd apps/api && go build ./...

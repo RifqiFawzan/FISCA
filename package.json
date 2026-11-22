@@ -1,0 +1,42 @@
+{
+  "name": "fisca",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FISCA — AI-powered personal finance app (monorepo root task runner)",
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,green \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:web": "npm --prefix apps/web run dev",
+    "dev:api": "cd apps/api && go run ./cmd/api",
+    "build:web": "npm --prefix apps/web run build",
+    "lint:web": "npm --prefix apps/web run lint",
+    "test:api": "cd apps/api && go test ./...",
+    "test:e2e": "playwright test",
+  "test:types": "tsc -p tsconfig.test.json",
+    "gen:api": "openapi-typescript docs/api/openapi.yaml -o apps/web/lib/api.gen.ts",
+    "vet:api": "cd apps/api && go vet ./...",
+    "smoke:api": "powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1",
+    "db:up": "docker compose --env-file .env -f infra/docker-compose.yml up -d",
+    "db:down": "docker compose --env-file .env -f infra/docker-compose.yml down",
+    "db:reset": "docker compose --env-file .env -f infra/docker-compose.yml down -v",
+    "db:logs": "docker compose --env-file .env -f infra/docker-compose.yml logs -f db",
+    "db:migrate": "cd apps/api && go run ./cmd/migrate up",
+    "db:rollback": "cd apps/api && go run ./cmd/migrate down",
+    "db:status": "cd apps/api && go run ./cmd/migrate status",
+    "db:seed": "cd apps/api && go run ./cmd/seed",
+    "db:setup": "npm run db:up && npm run db:migrate && npm run db:seed",
+    "auth:reset": "cd apps/api && go run ./cmd/resetpassword",
+    "stack:up": "docker compose --env-file .env -f infra/docker-compose.yml up -d --build",
+    "stack:down": "docker compose --env-file .env -f infra/docker-compose.yml down",
+    "stack:reset": "docker compose --env-file .env -f infra/docker-compose.yml down -v",
+    "stack:ps": "docker compose --env-file .env -f infra/docker-compose.yml ps",
+    "stack:logs": "docker compose --env-file .env -f infra/docker-compose.yml logs -f api web",
+    "stack:config": "docker compose --env-file .env -f infra/docker-compose.yml config"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@types/node": "^20.19.43",
+    "concurrently": "^9.2.1",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5.9.3"
+  }
+}

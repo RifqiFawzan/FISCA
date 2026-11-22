@@ -1,0 +1,750 @@
+<html lang="id" class="h4idsq_variable h-full">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="/_next/static/chunks/2ty95k0tm8gmx.css" data-precedence="next">
+<link rel="preload" as="script" fetchpriority="low" href="/_next/static/chunks/310vm2bl3xxpt.js">
+<meta name="theme-color" content="#0a0e16">
+<meta name="next-size-adjust" content="">
+<title>Asisten · FISCA</title>
+<meta name="description" content="Catat transaksi lewat suara atau chat, pahami arus kas, dan kelola budget bulanan dalam satu tempat.">
+<meta name="application-name" content="FISCA">
+<link rel="icon" href="/favicon.ico?favicon.117ezoe8m31dk.ico" sizes="48x48" type="image/x-icon">
+<link rel="preload" href="/_next/static/media/d8aeca813a9ab546-s.p.18rizl4rsrl42.woff2" as="font" crossorigin="" type="font/woff2">
+</head>
+<body class="min-h-full bg-canvas text-foreground">
+<div hidden="">
+<!--$-->
+<!--/$-->
+</div>
+<!--&-->
+<div class="min-h-dvh bg-background">
+<!--&-->
+<!--&-->
+<div class="flex min-h-dvh flex-col">
+<header class="pt-safe sticky top-0 z-30 border-b border-line bg-background/95 backdrop-blur-xl">
+<div class="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4">
+<button type="button" aria-label="Kembali" class="grid size-9 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-surface-high hover:text-foreground">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left size-5" aria-hidden="true">
+<path d="m12 19-7-7 7-7">
+</path>
+<path d="M19 12H5">
+</path>
+</svg>
+</button>
+<div class="flex min-w-0 flex-1 items-center gap-2.5">
+<span class="shadow-glow-ai grid size-8 shrink-0 place-items-center rounded-full bg-ai/10 text-ai ring-1 ring-ai/20">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles lucide-stars size-4" aria-hidden="true">
+<path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z">
+</path>
+<path d="M20 2v4">
+</path>
+<path d="M22 4h-4">
+</path>
+<circle cx="4" cy="20" r="2">
+</circle>
+</svg>
+</span>
+<div class="min-w-0">
+<p class="truncate text-sm font-semibold">Asisten FISCA</p>
+<p class="truncate text-xs text-muted">Catat transaksi &amp; tanya keuangan</p>
+</div>
+</div>
+<button type="button" class="inline-flex items-center justify-center whitespace-nowrap transition-colors disabled:cursor-not-allowed h-9 px-3 text-sm rounded-md gap-1.5 text-muted font-medium hover:bg-surface-high hover:text-foreground disabled:opacity-50 md:hidden" aria-label="Buka daftar percakapan">Riwayat</button>
+<button type="button" class="inline-flex items-center justify-center whitespace-nowrap transition-colors disabled:cursor-not-allowed h-9 px-3 text-sm rounded-md gap-1.5 bg-surface-high text-foreground font-medium hover:bg-surface-highest disabled:opacity-50">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus size-3.5" aria-hidden="true">
+<path d="M5 12h14">
+</path>
+<path d="M12 5v14">
+</path>
+</svg>
+<span class="hidden sm:inline">Baru</span>
+</button>
+</div>
+</header>
+<div class="mx-auto flex w-full max-w-6xl flex-1 overflow-hidden">
+<aside class="w-full shrink-0 flex-col border-r border-line bg-background md:flex md:w-64 lg:w-72 hidden">
+<div class="border-b border-line p-3">
+<button type="button" class="inline-flex items-center justify-center whitespace-nowrap transition-colors disabled:cursor-not-allowed h-11 px-4 text-sm rounded-lg gap-2 bg-surface-high text-foreground font-medium hover:bg-surface-highest disabled:opacity-50 w-full">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus size-4" aria-hidden="true">
+<path d="M5 12h14">
+</path>
+<path d="M12 5v14">
+</path>
+</svg>Percakapan baru</button>
+</div>
+<div class="min-h-0 flex-1 overflow-y-auto p-2">
+<ul class="space-y-1">
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">cari transaksi kopi</span>
+<span class="block truncate text-[11px] text-muted-dim">1 jam lalu</span>
+</button>
+<button type="button" aria-label="Hapus cari transaksi kopi" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">berapa pengeluaran bulan ini</span>
+<span class="block truncate text-[11px] text-muted-dim">1 jam lalu</span>
+</button>
+<button type="button" aria-label="Hapus berapa pengeluaran bulan ini" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">catat makan siang 25rb</span>
+<span class="block truncate text-[11px] text-muted-dim">1 jam lalu</span>
+</button>
+<button type="button" aria-label="Hapus catat makan siang 25rb" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">cari transaksi kopi</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus cari transaksi kopi" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">berapa pengeluaran bulan ini</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus berapa pengeluaran bulan ini" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">catat makan siang 25rb</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus catat makan siang 25rb" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">cari transaksi kopi</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus cari transaksi kopi" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">berapa pengeluaran bulan ini</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus berapa pengeluaran bulan ini" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">catat makan siang 25rb</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus catat makan siang 25rb" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">cari transaksi kopi</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus cari transaksi kopi" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">berapa pengeluaran bulan ini</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus berapa pengeluaran bulan ini" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">catat makan siang 25rb</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus catat makan siang 25rb" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">pindah 300rb</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus pindah 300rb" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">pindah 300rb dari BCA ke Cash</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus pindah 300rb dari BCA ke Cash" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">pindah 300rb dari BCA ke Cash</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus pindah 300rb dari BCA ke Cash" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">catat 25rb</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus catat 25rb" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">buat budget makanan 1 juta</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus buat budget makanan 1 juta" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">apakah ada pengeluaran tidak biasa bulan ini</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus apakah ada pengeluaran tidak biasa bulan ini" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">bayar 50 ribu</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus bayar 50 ribu" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">pindah 300rb dari BCA ke Cash</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus pindah 300rb dari BCA ke Cash" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">catat bayar kos 2 juta 500 ribu</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus catat bayar kos 2 juta 500 ribu" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">cari transaksi kopi</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus cari transaksi kopi" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">berapa pengeluaran bulan ini</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus berapa pengeluaran bulan ini" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">catat makan siang 25rb</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus catat makan siang 25rb" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">catat makan siang kemarin 25rb</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus catat makan siang kemarin 25rb" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">catat beli buku bulan lalu 40rb</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus catat beli buku bulan lalu 40rb" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">catat makan minggu lalu 25rb</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus catat makan minggu lalu 25rb" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">bayar listrik tgl 15 oktober 200rb</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus bayar listrik tgl 15 oktober 200rb" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">catat kopi tadi pagi 18rb</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus catat kopi tadi pagi 18rb" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+<li class="group flex items-center gap-1">
+<button type="button" class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition-colors text-muted hover:bg-surface-low hover:text-foreground">
+<span class="block truncate font-medium">catat coba tes tadi pagi 7rb</span>
+<span class="block truncate text-[11px] text-muted-dim">1 hari lalu</span>
+</button>
+<button type="button" aria-label="Hapus catat coba tes tadi pagi 7rb" class="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash lucide-trash-2 size-3.5" aria-hidden="true">
+<path d="M10 11v6">
+</path>
+<path d="M14 11v6">
+</path>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6">
+</path>
+<path d="M3 6h18">
+</path>
+<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+</path>
+</svg>
+</button>
+</li>
+</ul>
+</div>
+</aside>
+<main class="flex min-w-0 flex-1 flex-col">
+<div class="min-h-0 flex-1 overflow-y-auto px-4 py-6">
+<div class="mx-auto flex w-full max-w-2xl flex-col gap-4">
+<div class="flex flex-1 flex-col items-center justify-center py-12 text-center">
+<span class="shadow-glow-ai grid size-16 place-items-center rounded-full bg-ai/10 text-ai">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles lucide-stars size-7" aria-hidden="true">
+<path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z">
+</path>
+<path d="M20 2v4">
+</path>
+<path d="M22 4h-4">
+</path>
+<circle cx="4" cy="20" r="2">
+</circle>
+</svg>
+</span>
+<h1 class="mt-5 text-xl font-bold">Halo, saya Asisten FISCA</h1>
+<p class="mt-2 max-w-sm text-sm leading-6 text-muted">Catat transaksi lewat chat atau suara, tanya ringkasan keuangan, cari riwayat, dan cek budget.</p>
+<div class="mt-6 flex w-full max-w-sm flex-wrap justify-center gap-2">
+<button type="button" class="rounded-full border border-line bg-surface-low px-3 py-2 text-xs text-muted transition-colors hover:border-primary/40 hover:text-foreground">catat makan siang 25rb</button>
+<button type="button" class="rounded-full border border-line bg-surface-low px-3 py-2 text-xs text-muted transition-colors hover:border-primary/40 hover:text-foreground">berapa pengeluaran bulan ini</button>
+<button type="button" class="rounded-full border border-line bg-surface-low px-3 py-2 text-xs text-muted transition-colors hover:border-primary/40 hover:text-foreground">cari transaksi kopi</button>
+<button type="button" class="rounded-full border border-line bg-surface-low px-3 py-2 text-xs text-muted transition-colors hover:border-primary/40 hover:text-foreground">transaksi paling besar bulan ini</button>
+<button type="button" class="rounded-full border border-line bg-surface-low px-3 py-2 text-xs text-muted transition-colors hover:border-primary/40 hover:text-foreground">cek budget bulan ini</button>
+</div>
+</div>
+<div>
+</div>
+</div>
+</div>
+<div class="pb-safe border-t border-line bg-background/95 px-4 py-3 backdrop-blur-xl">
+<div class="mx-auto w-full max-w-2xl space-y-2">
+<form class="flex items-center gap-2 rounded-xl border border-line bg-surface-low px-3 py-2.5 focus-within:border-primary/50">
+<input aria-label="Tulis pesan" placeholder="Tulis: catat kopi 18rb" class="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-dim focus:outline-none disabled:opacity-60" value="">
+<button type="button" aria-label="Rekam suara" class="grid size-9 shrink-0 place-items-center rounded-lg transition-colors text-muted hover:bg-surface-high hover:text-foreground">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic size-4" aria-hidden="true">
+<path d="M12 19v3">
+</path>
+<path d="M19 10v2a7 7 0 0 1-14 0v-2">
+</path>
+<rect x="9" y="2" width="6" height="13" rx="3">
+</rect>
+</svg>
+</button>
+<button type="submit" disabled="" class="inline-flex items-center justify-center whitespace-nowrap transition-colors disabled:cursor-not-allowed h-9 px-3 text-sm rounded-md gap-1.5 bg-primary text-on-primary font-semibold shadow-glow-primary hover:bg-primary-hover disabled:bg-primary/50" aria-label="Kirim pesan">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send size-4" aria-hidden="true">
+<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z">
+</path>
+<path d="m21.854 2.147-10.94 10.939">
+</path>
+</svg>
+<span class="hidden sm:inline">Kirim</span>
+</button>
+</form>
+<p class="text-center text-[11px] text-muted-dim">AI tidak pernah menulis data keuangan langsung. Setiap transaksi divalidasi server sebelum disimpan.</p>
+</div>
+</div>
+</main>
+</div>
+</div>
+<!--$-->
+<!--/$-->
+<!--/&-->
+<!--/&-->
+</div>
+<!--/&-->
+<next-route-announcer style="position: absolute;">
+</next-route-announcer>
+</body>
+</html>

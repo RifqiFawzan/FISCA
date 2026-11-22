@@ -1,0 +1,45 @@
+{"id":"nominal-01","kategori":"nominal","input":"catat makan 25 ribu","ekspektasi":{"kind":"create_transaction","type":"expense","amount":25000},"catatan":"nominal ditulis dengan kata ribu"}
+{"id":"nominal-02","kategori":"nominal","input":"catat beli pulsa 1,2 juta","ekspektasi":{"kind":"create_transaction","amount":1200000},"catatan":"desimal koma dengan satuan juta"}
+{"id":"nominal-03","kategori":"nominal","input":"catat bayar kos 2 juta 500 ribu","ekspektasi":{"kind":"create_transaction","amount":2500000},"catatan":"nominal majemuk, dua satuan dijumlahkan"}
+{"id":"nominal-04","kategori":"nominal","input":"catat isi bensin 150rb","ekspektasi":{"kind":"create_transaction","amount":150000},"catatan":"singkatan rb"}
+{"id":"nominal-05","kategori":"nominal","input":"catat beli buku 75.000","ekspektasi":{"kind":"create_transaction","amount":75000},"catatan":"pemisah ribuan titik"}
+{"id":"nominal-06","kategori":"nominal","input":"catat beli kopi 18.500","ekspektasi":{"kind":"create_transaction","amount":18500},"catatan":"campuran titik ribuan"}
+{"id":"tanggal-01","kategori":"tanggal","input":"catat makan kemarin 30rb","ekspektasi":{"kind":"create_transaction","amount":30000,"occurredAt":"2026-11-07"},"catatan":"kemarin = sehari sebelum hari uji"}
+{"id":"tanggal-02","kategori":"tanggal","input":"catat kopi tadi pagi 18rb","ekspektasi":{"kind":"create_transaction","amount":18000,"occurredAt":"2026-11-08"},"catatan":"tadi pagi = hari ini, kata tanggal tidak bocor ke deskripsi"}
+{"id":"tanggal-03","kategori":"tanggal","input":"catat beli buku bulan lalu 40rb","ekspektasi":{"kind":"create_transaction","amount":40000,"occurredAt":"2026-10-08"},"catatan":"bulan lalu = tanggal sama bulan sebelumnya"}
+{"id":"tanggal-04","kategori":"tanggal","input":"bayar listrik tgl 15 oktober 200rb","ekspektasi":{"kind":"create_transaction","amount":200000,"occurredAt":"2026-10-15"},"catatan":"nama bulan dibaca; angka tanggal tidak dianggap nominal"}
+{"id":"tanggal-05","kategori":"tanggal","input":"catat makan minggu lalu 25rb","ekspektasi":{"kind":"create_transaction","amount":25000,"occurredAt":"2026-11-01"},"catatan":"minggu lalu = tujuh hari sebelumnya"}
+{"id":"tanggal-06","kategori":"tanggal","input":"catat jajan kemarin lusa 12rb","ekspektasi":{"kind":"create_transaction","amount":12000,"occurredAt":"2026-11-06"},"catatan":"kemarin lusa = dua hari sebelumnya"}
+{"id":"multi-01","kategori":"multi-transaksi","input":"beli makan 25 ribu dan kopi 18 ribu","ekspektasi":{"kind":"multi_transaction","count":2},"catatan":"contoh plan.md 12.4: dua transaksi"}
+{"id":"multi-02","kategori":"multi-transaksi","input":"beli makan 25rb, kopi 18rb, teh 5rb","ekspektasi":{"kind":"multi_transaction","count":3},"catatan":"pemisah koma, tiga item"}
+{"id":"multi-03","kategori":"multi-transaksi","input":"beli makan 25rb dan kopi","ekspektasi":{"kind":"create_transaction","amount":25000},"catatan":"salah satu item tanpa nominal: jangan dipecah"}
+{"id":"multi-04","kategori":"multi-transaksi","input":"beli makan 25rb terus kopi 18rb","ekspektasi":{"kind":"multi_transaction","count":2},"catatan":"kata penghubung terus"}
+{"id":"code-01","kategori":"code-switching","input":"catat beli coffee 50k","ekspektasi":{"kind":"create_transaction","amount":50000},"catatan":"kata inggris + singkatan k"}
+{"id":"code-02","kategori":"code-switching","input":"catat lunch 75 ribu dong","ekspektasi":{"kind":"create_transaction","amount":75000},"catatan":"campur inggris + partikel informal"}
+{"id":"code-03","kategori":"code-switching","input":"catat bayar internet 200k","ekspektasi":{"kind":"create_transaction","amount":200000},"catatan":"singkatan k"}
+{"id":"code-04","kategori":"code-switching","input":"catat beli snack 15k","ekspektasi":{"kind":"create_transaction","amount":15000},"catatan":"singkatan k"}
+{"id":"transfer-01","kategori":"transfer-vs-expense","input":"pindah 300rb dari BCA ke Cash","ekspektasi":{"kind":"create_transaction","type":"transfer","amount":300000},"catatan":"pindah dana = transfer, bukan pengeluaran"}
+{"id":"transfer-02","kategori":"transfer-vs-expense","input":"transfer 500rb ke tabungan","ekspektasi":{"kind":"create_transaction","type":"transfer","amount":500000},"catatan":"kata transfer eksplisit"}
+{"id":"transfer-03","kategori":"transfer-vs-expense","input":"beli sepatu 300rb","ekspektasi":{"kind":"create_transaction","type":"expense","amount":300000},"catatan":"pembelian biasa = pengeluaran"}
+{"id":"transfer-04","kategori":"transfer-vs-expense","input":"terima gaji 5jt","ekspektasi":{"kind":"create_transaction","type":"income","amount":5000000},"catatan":"pemasukan"}
+{"id":"tanya-01","kategori":"pertanyaan-vs-perintah","input":"berapa pengeluaran minggu ini?","ekspektasi":{"kind":"spending_summary","clarify":false},"catatan":"pertanyaan, bukan pencatatan"}
+{"id":"tanya-02","kategori":"pertanyaan-vs-perintah","input":"transaksi paling besar bulan ini","ekspektasi":{"kind":"largest_transactions"},"catatan":"analitik terbesar"}
+{"id":"tanya-03","kategori":"pertanyaan-vs-perintah","input":"cari transaksi kopi","ekspektasi":{"kind":"search"},"catatan":"pencarian riwayat"}
+{"id":"tanya-04","kategori":"pertanyaan-vs-perintah","input":"total pemasukan tahun ini","ekspektasi":{"kind":"spending_summary"},"catatan":"ringkasan, bukan pencatatan"}
+{"id":"koreksi-01","kategori":"koreksi","input":"ubah kopi jadi 15rb","ekspektasi":{"kind":"correction","amount":15000},"catatan":"koreksi nominal transaksi terakhir"}
+{"id":"koreksi-02","kategori":"koreksi","input":"ganti roti jadi 12rb","ekspektasi":{"kind":"correction","amount":12000},"catatan":"kata ganti + jadi"}
+{"id":"koreksi-03","kategori":"koreksi","input":"salah, seharusnya 25rb","ekspektasi":{"kind":"correction","amount":25000},"catatan":"koreksi tanpa menyebut objek"}
+{"id":"koreksi-04","kategori":"koreksi","input":"koreksi beli makan kemarin jadi 30rb","ekspektasi":{"kind":"correction","amount":30000},"catatan":"koreksi dengan frasa tanggal"}
+{"id":"ambigu-01","kategori":"ambiguitas","input":"bayar 50 ribu","ekspektasi":{"kind":"create_transaction","amount":50000,"clarify":true},"catatan":"tanpa objek: harus klarifikasi, bukan tebakan"}
+{"id":"ambigu-02","kategori":"ambiguitas","input":"beli 25rb","ekspektasi":{"kind":"create_transaction","amount":25000,"clarify":true},"catatan":"hanya kata kerja + nominal"}
+{"id":"ambigu-03","kategori":"ambiguitas","input":"jajan 30rb","ekspektasi":{"kind":"create_transaction","amount":30000,"clarify":true},"catatan":"kata kerja tanpa objek"}
+{"id":"ambigu-04","kategori":"ambiguitas","input":"catat 100rb","ekspektasi":{"kind":"create_transaction","amount":100000,"clarify":true},"catatan":"deskripsi kosong total"}
+{"id":"analitik-01","kategori":"analitik","input":"pengeluaran terbesar bulan ini","ekspektasi":{"kind":"largest_transactions"},"catatan":"largest transaction"}
+{"id":"analitik-02","kategori":"analitik","input":"apakah ada pengeluaran tidak biasa bulan ini","ekspektasi":{"kind":"unusual_spending"},"catatan":"unusual spending saat ditanyakan"}
+{"id":"analitik-03","kategori":"analitik","input":"riwayat transaksi kopi bulan lalu","ekspektasi":{"kind":"search","period":"last_month"},"catatan":"pencarian + periode"}
+{"id":"analitik-04","kategori":"analitik","input":"pengeluaran bulan ini","ekspektasi":{"kind":"spending_summary","period":"this_month"},"catatan":"ringkasan + periode"}
+{"id":"budget-01","kategori":"budget","input":"cek budget bulan ini","ekspektasi":{"kind":"budget_status","period":"this_month"},"catatan":"status budget"}
+{"id":"budget-02","kategori":"budget","input":"ubah budget jadi 2jt","ekspektasi":{"kind":"proposal","amount":2000000},"catatan":"perubahan lewat proposal, bukan langsung aktif"}
+{"id":"budget-03","kategori":"budget","input":"berapa sisa budget bulan ini","ekspektasi":{"kind":"budget_status"},"catatan":"status budget"}
+{"id":"budget-04","kategori":"budget","input":"anggaran makan bulan ini","ekspektasi":{"kind":"budget_status"},"catatan":"sinonim anggaran"}
+{"id":"budget-05","kategori":"budget","input":"buat budget makanan 1 juta","ekspektasi":{"kind":"proposal","amount":1000000},"catatan":"buat budget = usulan menunggu persetujuan"}

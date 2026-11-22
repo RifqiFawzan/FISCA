@@ -1,0 +1,16 @@
+{
+  "//": "Typecheck untuk tests/. Playwright tidak memeriksa tipe secara bawaan, dan tests/ tidak masuk tsconfig apps/web — tanpa berkas ini kesalahan tipe di test lolos diam-diam (ISSUE-25).",
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["dom", "dom.iterable", "es2022"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["tests/e2e/**/*.ts"]
+}

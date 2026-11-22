@@ -1,0 +1,148 @@
+name: fisca
+
+# ---------------------------------------------------------------------------
+# Shared API image: api + db-init memakai image yang sama.
+# ---------------------------------------------------------------------------
+x-api-image: &api-image
+  image: fisca-api:dev
+  build:
+    context: ../apps/api
+    dockerfile: Dockerfile
+    args:
+      VERSION: ${APP_VERSION:-0.1.0}
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: fisca-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fisca}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fisca}
+      POSTGRES_DB: ${POSTGRES_DB:-fisca}
+    ports:
+      # 5434 karena 5432 dipakai PostgreSQL native dan 5433 dipakai project lain.
+      - "${POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - fisca_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fisca} -d ${POSTGRES_DB:-fisca}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Menjalankan goose migrate, lalu seed bila bukan production.
+  db-init:
+    <<: *api-image
+    container_name: fisca-db-init
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - /app/migrate up && if [ "$$APP_ENV" != "production" ]; then /app/seed; fi
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DATABASE_URL: postgres://${POSTGRES_USER:-fisca}:${POSTGRES_PASSWORD:-fisca}@db:5432/${POSTGRES_DB:-fisca}?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    <<: *api-image
+    container_name: fisca-api
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      API_PORT: "8080"
+      DATABASE_URL: postgres://${POSTGRES_USER:-fisca}:${POSTGRES_PASSWORD:-fisca}@db:5432/${POSTGRES_DB:-fisca}?sslmode=disable
+      AUTH_MODE: ${AUTH_MODE:-dev}
+      AUTH_JWKS_URL: ${AUTH_JWKS_URL:-}
+      AUTH_ISSUER: ${AUTH_ISSUER:-}
+      AUTH_AUDIENCE: ${AUTH_AUDIENCE:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      BUDGET_WARNING_THRESHOLD: ${BUDGET_WARNING_THRESHOLD:-0.8}
+      RATE_LIMIT_RPS: ${RATE_LIMIT_RPS:-10}
+      RATE_LIMIT_BURST: ${RATE_LIMIT_BURST:-20}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_STT_MODEL: ${OPENAI_STT_MODEL:-Systran/faster-whisper-small}
+      # Dalam jaringan compose targetnya service `stt`, bukan localhost.
+      OPENAI_STT_BASE_URL: http://stt:8000/v1
+      AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-20}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health | grep -q '\"status\":\"ok\"'"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+    restart: unless-stopped
+
+  web:
+    image: fisca-web:dev
+    container_name: fisca-web
+    build:
+      context: ../apps/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080/api/v1}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/home | grep -qi fisca"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Speech-to-text lokal (OpenAI-compatible) untuk jalur voice, ISSUE-16.
+  # Chat tetap ke provider hosted; hanya /audio/transcriptions yang ke sini.
+  # ---------------------------------------------------------------------------
+  stt:
+    image: ghcr.io/speaches-ai/speaches:latest-cuda
+    container_name: fisca-stt
+    restart: unless-stopped
+    environment:
+      PRELOAD_MODELS: '["${OPENAI_STT_MODEL:-Systran/faster-whisper-small}"]'
+      WHISPER__INFERENCE_DEVICE: cuda
+      WHISPER__COMPUTE_TYPE: float16
+      # Model tetap termuat selama container hidup; transkripsi berikutnya murah.
+      WHISPER__TTL: "-1"
+    ports:
+      - "${STT_PORT:-9000}:8000"
+    volumes:
+      - fisca_stt_models:/home/ubuntu/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://0.0.0.0:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+      # Catatan: image ini tidak mengeksekusi PRELOAD_MODELS, jadi model harus
+      # diunduh sekali lewat `POST /v1/models/<id>` (tersimpan di volume).
+      # contoh: curl -X POST http://localhost:9000/v1/models/Systran/faster-whisper-small
+
+volumes:
+  fisca_pgdata:
+  fisca_stt_models:

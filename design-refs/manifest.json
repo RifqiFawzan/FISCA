@@ -1,0 +1,66 @@
+{
+    "project":  "2264071121943649738",
+    "fetchedAt":  "2026-11-22T00:13:04.095Z",
+    "screens":  [
+                    {
+                        "id":  "c974c22d6b8441da9f2f00608c522bf2",
+                        "title":  "FISCA - Dashboard Financial Overview (Desktop Web)",
+                        "width":  "2560",
+                        "height":  "4812",
+                        "generatedBy":  "figaro_agent",
+                        "dir":  "design-refs/fisca-dashboard-financial-overview-desktop-web",
+                        "htmlBytes":  47812,
+                        "pngBytes":  1292632
+                    },
+                    {
+                        "id":  "2bd22685f65c4fb6ac4668656a2d0d1a",
+                        "title":  "FISCA - Smart Assistant Workspace (Desktop Web)",
+                        "width":  "2560",
+                        "height":  "3498",
+                        "generatedBy":  "figaro_agent",
+                        "dir":  "design-refs/fisca-smart-assistant-workspace-desktop-web",
+                        "htmlBytes":  43551,
+                        "pngBytes":  1095023
+                    },
+                    {
+                        "id":  "0840884340414d509a64acb2f453767b",
+                        "title":  "FISCA - History \u0026 Transaction Management (Desktop Web)",
+                        "width":  "2560",
+                        "height":  "4166",
+                        "generatedBy":  "figaro_agent",
+                        "dir":  "design-refs/fisca-history-transaction-management-desktop-web",
+                        "htmlBytes":  66699,
+                        "pngBytes":  1300169
+                    },
+                    {
+                        "id":  "c372487fe37f4bbd91cc288009809195",
+                        "title":  "FISCA - Reports \u0026 Financial Analytics (Desktop Web)",
+                        "width":  "2560",
+                        "height":  "4228",
+                        "generatedBy":  "figaro_agent",
+                        "dir":  "design-refs/fisca-reports-financial-analytics-desktop-web",
+                        "htmlBytes":  53172,
+                        "pngBytes":  1248263
+                    },
+                    {
+                        "id":  "623a440af0324e6d81c3c43711088a92",
+                        "title":  "FISCA - Rencana Tabungan \u0026 Savings Goals (Desktop Web)",
+                        "width":  "2560",
+                        "height":  "3128",
+                        "generatedBy":  "figaro_agent",
+                        "dir":  "design-refs/fisca-rencana-tabungan-savings-goals-desktop-web",
+                        "htmlBytes":  37772,
+                        "pngBytes":  978841
+                    },
+                    {
+                        "id":  "40a52fdd5f4f4060b8b736d2730eef05",
+                        "title":  "FISCA - Pengaturan \u0026 Wallet Management (Desktop Web)",
+                        "width":  "2560",
+                        "height":  "3788",
+                        "generatedBy":  "figaro_agent",
+                        "dir":  "design-refs/fisca-pengaturan-wallet-management-desktop-web",
+                        "htmlBytes":  45704,
+                        "pngBytes":  1176802
+                    }
+                ]
+}

@@ -1,0 +1,174 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   FISCA design tokens — sumber kebenaran: DESIGN.md §4.
+   Dark-first. Tidak ada token carbon/ESG.
+   --------------------------------------------------------------------------- */
+
+@theme {
+  /* Base surfaces */
+  --color-canvas: #0a0e16;
+  --color-background: #0f131c;
+  --color-surface-low: #181c24;
+  --color-surface: #1c2028;
+  --color-surface-high: #262a33;
+  --color-surface-highest: #31353e;
+
+  /* Text */
+  --color-foreground: #f1f5f9;
+  --color-muted: #94a3b8;
+  /* DESIGN.md §4 menetapkan #64748B untuk teks sekunder, tetapi rasio itu
+     hanya 3.0–4.1:1 di permukaan gelap FISCA dan gagal WCAG AA (4.5:1).
+     #8493ab adalah nilai terdekat yang lulus di semua permukaan, jadi hirarki
+     muted vs muted-dim tetap terjaga. Deviasi dicatat di plan.md §17. */
+  --color-muted-dim: #8493ab;
+  --color-on-primary: #003824;
+
+  /* Brand & semantic accents
+     primary/hover/deep mengikuti aset design system Stitch "Dark Carbon Glass"
+     (#4EDEA3 = primary-fixed-dim / surface-tint). Deviasi dari DESIGN.md §4
+     (primary #10B981) dicatat di plan.md §17.2. Nilai hover & deep dipilih
+     agar teks on-primary tetap >= 4.5:1 — versi lama justru GAGAL
+     (3,50 dan 2,41). */
+  --color-primary: #4edea3;
+  --color-primary-hover: #46c893;
+  --color-primary-deep: #3eb282;
+  --color-income: #34d399;
+  --color-expense: #fb7185;
+  --color-transfer: #38bdf8;
+  /* secondary Stitch (#4CD7F6) */
+  --color-ai: #4cd7f6;
+  /* tertiary Stitch (#C0C1FF) */
+  --color-analytics: #c0c1ff;
+  --color-warning: #fbbf24;
+  /* DESIGN.md §4 menetapkan #F43F5E, tetapi rasio itu 3.9–4.4:1 di atas
+     chip/alert yang diwarnainya sendiri dan gagal WCAG AA. #f66981 adalah
+     merah terdekat yang lulus di semua latar nyata (badge 15%, alert 10%,
+     panel kaca, permukaan). Deviasi dicatat di plan.md §17. */
+  --color-danger: #f66981;
+  --color-success: #34d399;
+
+  /* Borders */
+  --color-line: rgba(255, 255, 255, 0.06);
+  --color-line-strong: rgba(255, 255, 255, 0.1);
+  --color-line-focus: rgba(6, 182, 212, 0.8);
+
+  /* Typography */
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+
+  /* Radius (DESIGN.md §4.4) */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Glow (DESIGN.md §4.6). Hanya aksi primer yang berpendar (R-13): satu
+     jenis permukaan, bukan kartu + tombol + badge + ikon sekaligus.
+     Token glow untuk ai/warning/danger sengaja tidak ada — keduanya sudah
+     tidak dipakai komponen mana pun sejak dosis glow dikurangi (ISSUE-26). */
+  --shadow-glow-primary: 0 0 16px rgba(78, 222, 163, 0.2);
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+   --------------------------------------------------------------------------- */
+
+:root {
+  color-scheme: dark;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  border-color: var(--color-line);
+}
+
+html {
+  background-color: var(--color-canvas);
+}
+
+body {
+  min-height: 100dvh;
+  background-color: var(--color-canvas);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background-color: rgba(78, 222, 163, 0.3);
+  color: var(--color-foreground);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-line-focus);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+   Utilities
+   --------------------------------------------------------------------------- */
+
+/* R-10 (antislop): glassmorphism sebagai AKSEN, bukan karakter seluruh UI —
+   dosis dibatasi 1–2 permukaan (sebelumnya ada 6: kartu, sheet, overlay,
+   navbar, header asisten, dan bar input).
+
+   Dua yang bertahan:
+   1. .glass-panel — kartu/panel, yaitu level "Panel" di DESIGN.md §4.5.
+   2. Bottom navbar — satu-satunya permukaan tempat konten benar-benar
+      bergulir di belakangnya, jadi blur-nya berfungsi, bukan dekoratif.
+
+   Yang dihapus: sheet, overlay, header asisten, bar input. Semuanya sudah
+   punya varian solid; tanpa blur, translusen justru membuat teks susah
+   dibaca (DESIGN.md §4.5: "Do not depend on backdrop-filter for readability").
+   Fallback opaque tetap wajib untuk peramban tanpa backdrop-filter. */
+.glass-panel {
+  background-color: var(--color-surface-low);
+  border: 1px solid var(--color-line);
+}
+
+@supports (backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px)) {
+  .glass-panel {
+    background-color: rgba(24, 28, 36, 0.7);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+  }
+}
+
+.floating-panel {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line-strong);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.pb-safe {
+  padding-bottom: max(8px, var(--safe-bottom));
+}
+
+.pt-safe {
+  padding-top: var(--safe-top);
+}
+
+/* Angka finansial selalu tabular (DESIGN.md §4.2). */
+.financial {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* ---------------------------------------------------------------------------
+   Motion
+   --------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
