@@ -9,6 +9,14 @@ import type { AssistantMessage, Conversation } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import { relativeTime } from "@/lib/format";
 import { BackButton } from "@/components/layout/back-button";
+import {
+  MessageScroller,
+  MessageScrollerButton,
+  MessageScrollerContent,
+  MessageScrollerItem,
+  MessageScrollerProvider,
+  MessageScrollerViewport,
+} from "@/components/ui/message-scroller";
 import { Alert, Spinner } from "@/components/ui/feedback";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -30,7 +38,9 @@ export function AssistantView() {
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  // Pesan yang sedang "di-stream" (penyajian kata demi kata dari balasan yang
+  // sudah lengkap dari server — lihat design-refs/motion-streaming-reply.html).
+  const [streamId, setStreamId] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
@@ -39,10 +49,6 @@ export function AssistantView() {
     () => (activeId ? api.assistant.conversation(activeId) : Promise.resolve([] as AssistantMessage[])),
     `assistant:messages:${activeId ?? "none"}`,
   );
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages.data, sending]);
 
   async function send(text: string, source: "text" | "voice" = "text") {
     const trimmed = text.trim();
@@ -57,6 +63,9 @@ export function AssistantView() {
         source,
       });
       setActiveId(reply.conversationId);
+      // Streaming hanya diputar sekali saat pesan tiba; streamId dibersihkan
+      // oleh StreamingReply sendiri setelah kata terakhir selesai animasi.
+      setStreamId(reply.messageId);
       messages.reload();
       conversations.reload();
     } catch (err) {
@@ -211,29 +220,55 @@ export function AssistantView() {
         </aside>
 
         <main className="flex min-w-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 xl:mx-4 xl:my-4 xl:rounded-xl xl:border xl:border-line xl:bg-surface">
-            <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
-              {messages.error ? (
-                <Alert tone="error" title="Percakapan gagal dimuat">{messages.error}</Alert>
-              ) : null}
+          {/* MessageScroller (shadcn): auto-scroll ke anchor + tombol lompat
+              ke pesan terbaru, menggantikan bottomRef manual sebelumnya. */}
+          <MessageScrollerProvider>
+            <MessageScroller className="min-h-0 flex-1 xl:mx-4 xl:my-4 xl:rounded-xl xl:border xl:border-line xl:bg-surface">
+              <MessageScrollerViewport className="px-4 py-6">
+                <MessageScrollerContent className="mx-auto w-full max-w-2xl">
+                  {messages.error ? (
+                    <Alert tone="error" title="Percakapan gagal dimuat">{messages.error}</Alert>
+                  ) : null}
 
-              {history.length === 0 && !sending && !activeId ? (
-                <Welcome onPick={(text) => send(text)} />
-              ) : null}
+                  {history.length === 0 && !sending && !activeId ? (
+                    <Welcome onPick={(text) => send(text)} />
+                  ) : null}
 
-              {history.map((message) => (
-                <MessageBubble key={message.id} message={message} onApproved={messages.reload} />
-              ))}
+                  {history.map((message) => (
+                    <MessageScrollerItem key={message.id}>
+                      <MessageBubble
+                      message={message}
+                      onApproved={messages.reload}
+                      streaming={streamId === message.id}
+                      onStreamDone={() => setStreamId(null)}
+                    />
+                    </MessageScrollerItem>
+                  ))}
 
-              {sending ? (
-                <div className="flex items-center gap-2 text-xs text-muted">
-                  <Spinner /> Asisten sedang memproses…
-                </div>
-              ) : null}
+                  {/* Pill "Berpikir…" — status menunggu LLM yang sesungguhnya
+                      (request masih berjalan), menggantikan spinner generik. */}
+                  {sending ? (
+                    <div className="flex items-start gap-2" role="status" aria-live="polite">
+                      <span
+                        aria-hidden
+                        className="hidden size-8 shrink-0 place-items-center rounded-full bg-ai/10 text-ai ring-1 ring-ai/20 xl:grid"
+                      >
+                        <MessagesSquare className="size-4" />
+                      </span>
+                      <span className="reply-think rounded-2xl rounded-tl-sm border border-line bg-surface-low px-3.5 py-2.5 text-sm leading-6">
+                        Berpikir…
+                      </span>
+                    </div>
+                  ) : null}
 
-              <div ref={bottomRef} />
-            </div>
-          </div>
+                  <MessageScrollerItem scrollAnchor>
+                    <div aria-hidden className="h-px w-full" />
+                  </MessageScrollerItem>
+                </MessageScrollerContent>
+              </MessageScrollerViewport>
+              <MessageScrollerButton direction="end" size="sm" />
+            </MessageScroller>
+          </MessageScrollerProvider>
 
           <div className="pb-safe border-t border-line bg-background px-4 py-3">
             <div className="mx-auto w-full max-w-2xl space-y-2">
@@ -364,6 +399,62 @@ function AssistantHeader({
   );
 }
 
+/**
+ * Menyajikan balasan yang SUDAH lengkap dari server kata demi kata (pola desain
+ * "Streaming Reply" — design-refs/motion-streaming-reply.html): tiap kata muncul
+ * naik + tajam selagi bubble memeluk isi yang bertambah. Konten tidak diubah,
+ * hanya penyajiannya; prefers-reduced-motion menampilkan teks penuh seketika.
+ */
+function StreamingReply({ text, onDone }: { text: string; onDone?: () => void }) {
+  const words = text.split(" ");
+  // Reduced motion: tampil penuh sejak awal (initializer, bukan setState di effect).
+  const [shown, setShown] = useState(() =>
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? words.length
+      : 0,
+  );
+  // Sengaja lewat ref (di-update di effect, bukan saat render): identitas
+  // onDone berubah tiap render; yang penting callback terbaru tetap dipanggil
+  // tepat setelah kata terakhir muncul.
+  const doneRef = useRef(onDone);
+  useEffect(() => {
+    doneRef.current = onDone;
+  });
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      doneRef.current?.();
+      return;
+    }
+    let i = 0;
+    const id = window.setInterval(() => {
+      i += 1;
+      setShown(i);
+      if (i >= words.length) {
+        window.clearInterval(id);
+        // Tunggu animasi kata terakhir (0,4s) sebelum induk mengubah pesan
+        // kembali menjadi teks biasa; swap-nya identik jadi tak terlihat.
+        window.setTimeout(() => doneRef.current?.(), 600);
+      }
+    }, 70);
+    return () => window.clearInterval(id);
+  }, [words.length]);
+
+  return (
+    <>
+      {words.map((word, index) => (
+        <span
+          key={index}
+          className={index < shown ? "stream-word" : "stream-word-pending"}
+        >
+          {word}{" "}
+        </span>
+      ))}
+    </>
+  );
+}
+
 function Welcome({ onPick }: { onPick: (text: string) => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center py-12 text-center">
@@ -393,9 +484,13 @@ function Welcome({ onPick }: { onPick: (text: string) => void }) {
 function MessageBubble({
   message,
   onApproved,
+  streaming = false,
+  onStreamDone,
 }: {
   message: AssistantMessage;
   onApproved: () => void;
+  streaming?: boolean;
+  onStreamDone?: () => void;
 }) {
   const user = message.role === "user";
   return (
@@ -416,8 +511,14 @@ function MessageBubble({
         ) : (
           <div>
             {message.content ? (
-              <div className="mb-1 rounded-2xl rounded-tl-sm border border-line bg-surface-low px-3.5 py-2.5 text-sm leading-6 text-foreground">
-                {message.content}
+              // w-fit: bubble memeluk isi dan "tumbuh" mengikuti kata yang muncul
+              // saat streaming (design-refs/motion-streaming-reply.html).
+              <div className="mb-1 w-fit max-w-full rounded-2xl rounded-tl-sm border border-line bg-surface-low px-3.5 py-2.5 text-sm leading-6 text-foreground">
+                {streaming ? (
+                  <StreamingReply text={message.content} onDone={onStreamDone} />
+                ) : (
+                  message.content
+                )}
               </div>
             ) : null}
             {message.card ? (

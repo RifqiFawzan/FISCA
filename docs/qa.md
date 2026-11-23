@@ -415,3 +415,61 @@ cd apps/api && TEST_DATABASE_URL=postgres://fisca:fisca@localhost:5434/fisca?ssl
 node tests/verify-ai-intent.mjs     #6 kasus Ai_intent.md (butuh API :8080)
 E2E_WEB_URL=http://localhost:3001 npm run test:e2e
 ```
+
+## 19. Kartu analisis asisten yang interaktif (23 November 2026)
+
+Jawaban "analisis keuangan bulan ini" kini punya **tiga lapis**: balasan ramah berisi angka backend, kartu ringkasan dengan **chart tren mini**, serta CTA ke halaman laporan yang nyata.
+
+| Yang berubah | Detail |
+|---|---|
+| Balasan `spending_summary` (service) | Dari konfirmasi datar ("…sudah dihitung") menjadi: *"Periode November2026: pemasukan Rp42.000.000, pengeluaran Rp4.880.100. Sisa Rp37.119.900. Rinciannya ada di kartu di bawah."* — semua angka dari `Dashboard` backend (Ai_intent.md §6/§11) |
+| **Chart tren mini** di kartu | Field baru `Card.Trend` meneruskan `monthlyTrend` (kontrak OpenAPI `AssistantCard.trend` + regen `api.gen.ts`); render bar pasangan masuk/keluar (maks12 periode), legend, label bulan pertama/akhir, tooltip per bar, `role="img"` + aria-label (padanan teks: legend + label + KPI) |
+| **Bar bertumpuk kategori** | Segment warna di atas daftar (dekoratif — nilainya diulang di daftar & progress bar yang sudah ada) |
+| **KPI "Bersih"** | Tona mengikuti tanda (positif=income, negatif=expense), konsisten dengan Home/Reports |
+| **CTA nyata (R-26)** | `financial_summary` → "Lihat laporan lengkap" (`/reports`); `budget_status` → "Kelola budget" (`/budget`) — tautan asli, bukan tombol mati |
+| Klasifikasi prompt | "analisis keuangan/pengeluaran bulan ini" dipetakan tegas ke `spending_summary` (kelas C dokumen = ambil data backend); konsultasi/saran/pendapat tetap `consultation` (jawaban teks tanpa kartu) |
+
+**Verifikasi:**
+
+| Pemeriksaan | Hasil |
+|---|---|
+| `go build` / `go vet` / `go test ./...` (dengan DB) | **semua hijau** |
+| `npx tsc --noEmit` · `eslint components/assistant` | **0 · 0** |
+| `npm run gen:api` | kontrak TS tersinkron (`trend?: MonthlyTotal[]`) |
+| `node tests/verify-assistant-card.mjs` | **PASS** — balasan memuat "pemasukan Rp…", `card=financial_summary` +2 titik tren; DOM:2 grup bar, legend,5 segmen stacked, CTA `/reports`,3 KPI, label "Okt 2026/Nov 2026" |
+| `npm run test:e2e` (stack produksi `:3000`) | **50/50 PASS** |
+
+**Temuan:** "analisis…" awalnya diklasifikasi `consultation` — jawabannya sudah ramah dan ber-grounding (bukti `financialContext` bekerja), tetapi tanpa kartu/chart. Diperbaiki di prompt, bukan di service: pemetaan kelas C ke kartu data dipertegas, sementara `consultation` tetap untuk saran/pendapat (sesuai Ai_intent.md §3B/C).
+
+**Reproduksi:**
+```bash
+node tests/verify-assistant-card.mjs          # API + DOM kartu (butuh stack jalan)
+E2E_WEB_URL=http://localhost:3000 npm run test:e2e
+```
+
+## 20. Streaming reply ala Motion Studies (23 November 2026)
+
+Respons asisten kini tampil seperti patokan `design-refs/motion-streaming-reply.html` (DesignBookmark): pill berkilau **"Berpikir…"** selagi request LLM benar-benar berjalan, lalu balasan mengalir **kata demi kata** (tiap kata naik + tajam, bubble `w-fit` memeluk isi yang bertambah).
+
+| Keputusan | Detail |
+|---|---|
+| Jujur terhadap arsitektur | FISCA **tidak memiliki streaming backend** — balasan baru ada setelah intent JSON lengkap (lihat §17/§18). Yang dianimasikan adalah **penyajian bertahap dari isi asli** dari server; tidak ada teks yang dikarang, dan angka selalu muncul utuh per kata (DESIGN.md §4.7) |
+| Pill "Berpikir…" | Menggantikan spinner generik; `role="status"` — ini status menunggu yang sesungguhnya (request belum selesai) |
+| Lifecycle stream | `streamId` ditandai dari `messageId` respons; `StreamingReply` menghitung kata (70ms) lalu memanggil `onDone` (via ref,600ms setelah kata terakhir) → pesan kembali jadi teks biasa tanpa lompatan |
+| Aksesibilitas | `prefers-reduced-motion` → teks tampil penuh seketika (pill tanpa kilau) — diuji di CSS `@media` |
+| Bubble | `w-fit max-w-full` — bubble memeluk isi (sesuai desain), konsisten sebelum & sesudah stream |
+
+**Verifikasi:**
+
+| Pemeriksaan | Hasil |
+|---|---|
+| `tsc` · `eslint` | **0 · 0** (dua aturan React-compiler sempat menolak: `set-state-in-effect` → pindah ke initializer; `refs` saat render → update ref di effect) |
+| `node tests/verify-streaming.mjs` | **PASS** — pill "Berpikir…" tampil saat pending; kata bertambah3→6 bertahap; teks final lengkap dengan angka utuh (`Rp42.000.000` dst), span dibersihkan setelah `onDone` |
+| `npm run test:e2e` (produksi `:3000`) | **50/50 PASS** |
+| Referensi | File asli disimpan di `design-refs/motion-streaming-reply.html` (diberi komentar sumber & lingkup adopsi: motion saja, warna/font tetap DESIGN.md) |
+
+**Reproduksi:**
+```bash
+node tests/verify-streaming.mjs               # pill + stream + final (butuh stack jalan)
+E2E_WEB_URL=http://localhost:3000 npm run test:e2e
+```

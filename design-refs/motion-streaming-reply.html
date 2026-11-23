@@ -1,0 +1,248 @@
+<!--
+  Referensi motion: "Streaming Reply" (DesignBookmark / Motion Studies)
+  https://designbookmark.com/motion#db-streaming-reply
+  Disimpan sebagai patokan perilaku chat asisten FISCA (23 Nov 2026):
+  pill "Berpikir" berkilau selagi menunggu, bubble membesar, jawaban mengalir
+  kata demi kata dengan spring. Warna/font TIDAK diikuti (DESIGN.md menang);
+  yang diadopsi hanya perilaku/motion-nya, dan selalu dimatikan pada
+  prefers-reduced-motion (DESIGN.md §4.7).
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Streaming Reply</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Motion Studies design tokens.
+   Single source of truth for color, type, radius and motion.
+   Edit here (or in Claude Design) and every component follows. */
+:root{
+  /* ---------- color ---------- */
+  --stage:#000;
+  --card:#171717;
+  --surface:#262626;
+  --fill-1:rgba(255,255,255,.05);
+  --fill-2:rgba(255,255,255,.09);
+  --fill-3:rgba(255,255,255,.14);
+  --line:rgba(255,255,255,.12);
+  --text:#fff;
+  --text-2:rgba(255,255,255,.78);
+  --muted:#9a9a9a;
+  --muted-2:#828282;
+  --chip-text:#b4b4b4;
+  --white:#fff;
+  --black:#000;
+  --green:#34d17a;
+  --green-text:#3ce085;
+  --orange:#ff9f0a;
+  --orange-text:#ff9f0a;
+  --red:#ff5a5f;
+  --yellow:#ffd23f;
+  --blue:#3ec9ff;
+  --purple:#c69bff;
+  --pink:#ff6ad5;
+  --heart:#ff4d6d;
+  --green-soft:rgba(52,209,122,.14);
+  --on-green:#04140a;
+  --object:#2c2c2c;
+  --inverse:#fff;
+  --on-inverse:#000;
+  --rim:transparent;
+  --focus-rim:transparent;
+  --glow:rgba(255,255,255,.16);
+  --sh:0;
+  color-scheme:dark;
+
+  /* ---------- type ---------- */
+  --font:Inter,"Helvetica Neue",Helvetica,Arial,sans-serif;
+  --fs-2xs:11px;
+  --fs-xs:12px;
+  --fs-sm:13px;
+  --fs-md:14px;
+  --fs-base:15px;
+  --fs-lg:16px;
+  --fs-xl:17px;
+  --fw-regular:400;
+  --fw-medium:500;
+  --fw-bold:600;
+
+  /* ---------- radius ---------- */
+  --r-card:28px;
+  --r-tile:14px;
+  --r-bar:5px;
+  --r-pill:999px;
+  --r-xs:6px;
+  --r-row:12px;
+  --r-panel:18px;
+  --r-sheet:24px;
+
+  /* ---------- motion: springs are "stiffness damping" ---------- */
+  --spring-follow:900 50;
+  --spring-settle:280 22;
+  --spring-soft:260 24;
+  --spring-lead:620 36;
+  --spring-trail:190 19;
+  --spring-pop:520 16;
+  --spring-fade:420 32;
+  --stagger:45;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--card);color:var(--text);overflow:hidden;
+  font-family:var(--font);-webkit-font-smoothing:antialiased;
+  user-select:none;-webkit-user-select:none;
+}
+.badge{
+  position:absolute;left:14px;top:14px;z-index:3;
+  font-size:var(--fs-xs);font-weight:var(--fw-medium);color:var(--text);
+  background:var(--fill-2);border-radius:var(--r-pill);padding:4px 10px;
+}
+
+/* Streaming Reply: the answer arrives word by word. The bubble's width and
+   height are springs, so it opens from the small "Thinking" pill and grows a
+   line at a time instead of jumping. */
+.chat{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(360px,calc(100vw - 48px));display:flex;flex-direction:column;gap:10px;
+  font-family:var(--font-inter,Inter),Inter,"Helvetica Neue",Arial,sans-serif;
+  font-size:var(--fs-base);line-height:22px;
+}
+.msg{border-radius:20px;will-change:transform,opacity}
+.me{align-self:flex-end;max-width:85%;padding:9px 14px;background:var(--inverse);color:var(--on-inverse);font-weight:var(--fw-medium)}
+.ai{position:relative;align-self:flex-start;overflow:hidden;background:var(--fill-2);color:var(--text)}
+.think{
+  position:absolute;left:14px;top:9px;white-space:nowrap;font-weight:var(--fw-medium);
+  background:linear-gradient(90deg,var(--muted-2) 20%,var(--text) 50%,var(--muted-2) 80%) 0 0/200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 1.4s linear infinite;
+}
+@keyframes shine{to{background-position:-200% 0}}
+.text{position:absolute;left:14px;top:9px;margin:0}
+.text .wd{display:inline-block;will-change:transform,opacity,filter}
+</style>
+</head>
+<body>
+<div class="chat" id="chat" aria-live="polite">
+  <div class="msg me" id="me">What makes a good empty state?</div>
+  <div class="msg ai" id="ai">
+    <span class="think" id="think">Thinking</span>
+    <p class="text" id="text"></p>
+  </div>
+</div>
+<script>
+window.Motion = (() => {
+  const setTheme = t => { document.documentElement.dataset.theme = t === 'light' ? 'light' : 'dark'; };
+  try { setTheme(localStorage.getItem('ms-theme')); } catch { setTheme('dark'); }
+  addEventListener('storage', e => { if (e.key === 'ms-theme') setTheme(e.newValue); });
+
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const S = (x, k = 400, c = 30) => ({ x, v: 0, t: x, k, c });
+  const step = (s, dt) => { const a = -s.k * (s.x - s.t) - s.c * s.v; s.v += a * dt; s.x += s.v * dt; };
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  let timeScale = 1;
+  const timers = [];
+  const after = (sec, fn) => { const t = { t: sec, fn }; timers.push(t); return t; };
+
+  const comps = [];
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min((now - last) / 1000, 1 / 30) * timeScale; last = now;
+    for (let i = timers.length - 1; i >= 0; i--) {
+      if ((timers[i].t -= dt) <= 0) timers.splice(i, 1)[0].fn();
+    }
+    const sub = 4;
+    for (let k = 0; k < sub; k++) comps.forEach(c => c.frame(dt / sub));
+    comps.forEach(c => c.render());
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  return { S, step, clamp, after, register: c => comps.push(c) };
+})();
+</script>
+<script>
+// Streaming Reply — perilaku yang diadopsi FISCA (lihat komentar di atas file).
+(() => {
+  const { S, step, clamp, after } = Motion;
+  const $ = id => document.getElementById(id);
+  const chat = $('chat'), me = $('me'), ai = $('ai'), think = $('think'), text = $('text');
+  const TURNS = [
+    ['What makes a good empty state?', 'Say what this space is for, show one clear next step, and keep the tone friendly. A small picture helps; a wall of text does not.'],
+    ['How long should onboarding take?', 'As short as the first useful moment allows. Ask only what you need now, and leave the rest for later, when it actually matters.'],
+  ];
+  const PAD_X = 14, PAD_Y = 9;
+  const meS = S(0, 300, 22), aiS = S(0, 300, 22), all = S(1, 260, 30);
+  const W = S(0, 260, 26), Hh = S(40, 260, 26), T = S(1, 300, 30);
+  let words = [], turn = 0;
+
+  const full = () => chat.offsetWidth * .9;
+
+  function start() {
+    const [q, a] = TURNS[turn++ % TURNS.length];
+    me.textContent = q;
+    text.innerHTML = '';
+    text.style.width = (full() - PAD_X * 2) + 'px';
+    words = a.split(' ').map((w, i, list) => {
+      const el = document.createElement('span');
+      el.className = 'wd';
+      el.textContent = w;
+      el.style.opacity = 0;
+      text.appendChild(el);
+      if (i < list.length - 1) text.append(' ');
+      return { el, s: S(0, 340, 26), on: false };
+    });
+    all.x = all.t = 1;
+    meS.x = meS.t = 0; aiS.x = aiS.t = 0; T.x = T.t = 1;
+    W.x = W.t = think.offsetWidth + PAD_X * 2;
+    Hh.x = Hh.t = 40;
+    after(.15, () => { meS.t = 1; });
+    after(.75, () => { aiS.t = 1; });
+    after(2.1, stream);
+  }
+
+  function stream() {
+    T.t = 0;
+    W.t = full();
+    words.forEach((w, i) => after(i * .07, () => {
+      w.on = true; w.s.t = 1;
+      Hh.t = text.offsetTop + w.el.offsetTop + w.el.offsetHeight + PAD_Y;
+    }));
+    after(words.length * .07 + 2.8, () => { all.t = 0; });
+    after(words.length * .07 + 3.4, start);
+  }
+
+  start();
+
+  Motion.register({
+    frame(dt) {
+      [meS, aiS, all, W, Hh, T].forEach(s => step(s, dt));
+      words.forEach(w => step(w.s, dt));
+    },
+    render() {
+      chat.style.opacity = clamp(all.x, 0, 1).toFixed(3);
+      me.style.opacity = clamp(meS.x, 0, 1).toFixed(3);
+      me.style.transform = `translateY(${((1 - meS.x) * 14).toFixed(2)}px) scale(${(.92 + .08 * meS.x).toFixed(4)})`;
+      ai.style.opacity = clamp(aiS.x, 0, 1).toFixed(3);
+      ai.style.transform = `translateY(${((1 - aiS.x) * 14).toFixed(2)}px)`;
+      ai.style.width = W.x.toFixed(2) + 'px';
+      ai.style.height = Hh.x.toFixed(2) + 'px';
+      think.style.opacity = clamp(T.x, 0, 1).toFixed(3);
+      words.forEach(w => {
+        if (!w.on) return;
+        const v = clamp(w.s.x, 0, 1.2);
+        w.el.style.opacity = clamp(v, 0, 1).toFixed(3);
+        w.el.style.transform = `translateY(${((1 - w.s.x) * 6).toFixed(2)}px)`;
+        w.el.style.filter = v < .98 ? `blur(${((1 - clamp(v, 0, 1)) * 4).toFixed(2)}px)` : 'none';
+      });
+    },
+  });
+})();
+</script>
+</body>
+</html>

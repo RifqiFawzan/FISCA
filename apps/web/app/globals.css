@@ -1,4 +1,8 @@
 @import "tailwindcss";
+/* Utilitas shadcn untuk message-scroller (scroll-fade, variant data-*, animasi).
+   Hanya berisi utilitas/keyframes — tidak membawa tema warna atau font. */
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 /* ---------------------------------------------------------------------------
    FISCA design tokens — sumber kebenaran: DESIGN.md §4 (selaras dengan blok
@@ -110,8 +114,67 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
-   Utilities
+   Streaming reply (patokan: design-refs/motion-streaming-reply.html).
+   Pill "Berpikir…" berkilau selagi request asisten benar-benar diproses, lalu
+   balasan yang sudah lengkap dari server diungkap kata demi kata (tiap kata
+   naik + tajam, bubble memeluk isi yang bertambah). Tujuan: memperlihatkan
+   jawaban mengalir tanpa pernah menampilkan angka setengah jadi. Dimatikan
+   sepenuhnya pada prefers-reduced-motion (DESIGN.md §4.7).
    --------------------------------------------------------------------------- */
+.reply-think {
+  font-weight: 500;
+  background: linear-gradient(
+    90deg,
+    var(--color-muted-dim) 20%,
+    var(--color-foreground) 50%,
+    var(--color-muted-dim) 80%
+  ) 0 0 / 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: reply-shine 1.4s linear infinite;
+}
+
+@keyframes reply-shine {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.stream-word {
+  display: inline-block;
+  animation: stream-word-in 0.4s cubic-bezier(0.23, 1, 0.32, 1) both;
+  will-change: transform, opacity, filter;
+}
+
+.stream-word-pending {
+  display: none;
+}
+
+@keyframes stream-word-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reply-think {
+    animation: none;
+    background: none;
+    color: var(--color-muted);
+  }
+
+  .stream-word {
+    animation: none;
+  }
+}
 
 /* R-10 (antislop): glassmorphism sebagai AKSEN, bukan karakter seluruh UI —
    dosis dibatasi 1–2 permukaan (sebelumnya ada 6: kartu, sheet, overlay,

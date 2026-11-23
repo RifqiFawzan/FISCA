@@ -40,10 +40,13 @@ type Card struct {
 	Proposal    *BudgetProposalDTO  `json:"proposal,omitempty"`
 	Unusual     *UnusualSpendingDTO `json:"unusual,omitempty"`
 
-	Categories    []CategorySpendDTO `json:"categories,omitempty"`
-	Items         []TransactionDTO   `json:"items,omitempty"`
-	Warnings      []Warning          `json:"warnings,omitempty"`
-	MissingFields []string           `json:"missingFields,omitempty"`
+	Categories []CategorySpendDTO `json:"categories,omitempty"`
+	// Trend meneruskan monthlyTrend backend untuk chart mini di kartu
+	// ringkasan (analisis interaktif; angka tetap hasil hitungan backend).
+	Trend         []MonthlyTotalDTO `json:"trend,omitempty"`
+	Items         []TransactionDTO  `json:"items,omitempty"`
+	Warnings      []Warning         `json:"warnings,omitempty"`
+	MissingFields []string          `json:"missingFields,omitempty"`
 
 	DraftID   string          `json:"draftId,omitempty"`
 	DraftData json.RawMessage `json:"draft,omitempty"`
@@ -315,13 +318,26 @@ func (s *Service) routeIntent(
 		if err != nil {
 			return "", Card{}, err
 		}
-		body := "Pemasukan dan pengeluaranmu untuk " + dashboard.Period.Label + " sudah dihitung."
+		// Jawaban memakai angka hasil backend (Ai_intent.md §6/§11) dan
+		// dibuat ramah, bukan sekadar konfirmasi proses.
+		tail := "Sisa Rp" + formatRupiahPlain(dashboard.Summary.Net)
+		if dashboard.Summary.Net < 0 {
+			tail = "Defisit Rp" + formatRupiahPlain(-dashboard.Summary.Net)
+		}
+		body := fmt.Sprintf(
+			"Periode %s: pemasukan Rp%s, pengeluaran Rp%s. %s. Rinciannya ada di kartu di bawah.",
+			dashboard.Period.Label,
+			formatRupiahPlain(dashboard.Summary.Income),
+			formatRupiahPlain(dashboard.Summary.Expense),
+			tail,
+		)
 		return body, Card{
 			Type:       "financial_summary",
 			Title:      "Ringkasan " + dashboard.Period.Label,
 			Summary:    &dashboard.Summary,
 			Period:     &dashboard.Period,
 			Categories: dashboard.TopCategories,
+			Trend:      dashboard.MonthlyTrend,
 		}, nil
 	case "largest_transactions":
 		largest, err := s.LargestTransactions(ctx, q, userID, periodRaw, intent.Type, "", 5)

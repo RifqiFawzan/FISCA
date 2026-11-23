@@ -2503,6 +2503,7 @@ export interface components {
             proposal?: components["schemas"]["BudgetProposal"];
             unusual?: components["schemas"]["UnusualSpending"];
             categories?: components["schemas"]["CategorySpend"][];
+            trend?: components["schemas"]["MonthlyTotal"][];
             items?: components["schemas"]["Transaction"][];
             warnings?: components["schemas"]["Warning"][];
             missingFields?: string[];

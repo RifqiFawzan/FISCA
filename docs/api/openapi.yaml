@@ -1911,6 +1911,9 @@ components:
         categories:
           type: array
           items: {$ref: '#/components/schemas/CategorySpend'}
+        trend:
+          type: array
+          items: {$ref: '#/components/schemas/MonthlyTotal'}
         items:
           type: array
           items: {$ref: '#/components/schemas/Transaction'}

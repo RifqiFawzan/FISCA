@@ -151,7 +151,7 @@ func (c *Client) ExtractIntent(ctx context.Context, text string, cctx Context) (
 
 Klasifikasi pesan (kind):
 - create_transaction = pengguna MELAPORKAN transaksi aktual ("tadi saya makan siang25 ribu").
-- spending_summary = "berapa/total/ringkasan" pemasukan atau pengeluaran.
+- spending_summary = "berapa/total/ringkasan" pemasukan atau pengeluaran, termasuk "analisis keuangan/pengeluaran/bulanku" dan permintaan data ringkas lain (kartu datanya tampil).
 - largest_transactions = "paling besar/termahal/terbesar".
 - unusual_spending = mencari pengeluaran menyimpang/anomali.
 - search = "cari/riwayat/daftar transaksi ...".

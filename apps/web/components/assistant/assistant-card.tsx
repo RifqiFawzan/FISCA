@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { Check } from "lucide-react";
 
 import { api } from "@/lib/api";
 import type { AssistantCard, Warning } from "@/lib/api";
-import { formatIDR } from "@/lib/format";
+import { formatIDR, formatMonthLabel } from "@/lib/format";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge, Progress, toneForPercent } from "@/components/ui/progress";
 import { Alert } from "@/components/ui/feedback";
@@ -21,6 +22,7 @@ export function AssistantCardView({
   onApproved?: () => void;
 }) {
   const approve = useAction();
+  const trend = card.trend ?? [];
 
   async function approveProposal() {
     if (!card.proposal) return;
@@ -60,7 +62,65 @@ export function AssistantCardView({
           <div className="grid grid-cols-3 gap-2">
             <SummaryTile label="Masuk" value={card.summary.income} tone="text-income" />
             <SummaryTile label="Keluar" value={card.summary.expense} tone="text-expense" />
-            <SummaryTile label="Bersih" value={card.summary.net} tone="text-foreground" />
+            <SummaryTile
+              label="Bersih"
+              value={card.summary.net}
+              tone={card.summary.net >= 0 ? "text-income" : "text-expense"}
+            />
+          </div>
+        ) : null}
+
+        {/* Chart tren mini dari monthlyTrend backend (angka dihitung server;
+            legend + label bulan + teks KPI di atas adalah padanan teksnya). */}
+        {trend.length > 0 ? (
+          <div className="rounded-lg border border-line bg-surface-low p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+                Tren masuk vs keluar
+              </p>
+              <span className="flex items-center gap-3 text-[11px] text-muted">
+                <span className="flex items-center gap-1">
+                  <span aria-hidden className="size-2 rounded-sm bg-income" /> Masuk
+                </span>
+                <span className="flex items-center gap-1">
+                  <span aria-hidden className="size-2 rounded-sm bg-expense" /> Keluar
+                </span>
+              </span>
+            </div>
+            <div
+              role="img"
+              aria-label={`Grafik batang pemasukan dan pengeluaran ${Math.min(12, trend.length)} periode terakhir`}
+              className="flex h-20 items-end justify-between gap-1"
+            >
+              {trend.slice(-12).map((point) => {
+                const max = Math.max(
+                  1,
+                  ...trend.map((x) => Math.max(x.income, x.expense)),
+                );
+                return (
+                  <div
+                    key={point.month}
+                    title={`${formatMonthLabel(point.month)}: masuk ${formatIDR(point.income)}, keluar ${formatIDR(point.expense)}`}
+                    className="flex h-full min-w-0 flex-1 items-end justify-center gap-px"
+                  >
+                    <span
+                      aria-hidden
+                      className="w-1/2 rounded-t-sm bg-income/80"
+                      style={{ height: `${Math.max(4, (point.income / max) * 100)}%` }}
+                    />
+                    <span
+                      aria-hidden
+                      className="w-1/2 rounded-t-sm bg-expense/80"
+                      style={{ height: `${Math.max(4, (point.expense / max) * 100)}%` }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-1.5 flex justify-between text-[10px] text-muted">
+              <span>{formatMonthLabel(trend[0].month)}</span>
+              <span>{formatMonthLabel(trend[trend.length - 1].month)}</span>
+            </div>
           </div>
         ) : null}
 
@@ -69,17 +129,36 @@ export function AssistantCardView({
         ) : null}
 
         {card.categories && card.categories.length > 0 ? (
-          <ul className="space-y-2">
-            {card.categories.slice(0, 5).map((category) => (
-              <li key={category.categoryId ?? category.name}>
-                <div className="mb-1 flex justify-between gap-2 text-xs">
-                  <span className="truncate">{category.name}</span>
-                  <span className="financial font-semibold">{formatIDR(category.total)}</span>
-                </div>
-                <Progress value={Math.min(1, category.percent)} className="h-1.5" />
-              </li>
-            ))}
-          </ul>
+          <>
+            {/* Bar bertumpuk dekoratif; setiap nilai diulang di daftar di
+                bawahnya supaya pembaca layar tetap mendapat angkanya. */}
+            <div
+              aria-hidden
+              className="flex h-2 w-full overflow-hidden rounded-full bg-surface-high"
+            >
+              {card.categories.slice(0, 5).map((category) => (
+                <span
+                  key={`bar-${category.categoryId ?? category.name}`}
+                  className="h-full transition-[width] duration-300"
+                  style={{
+                    backgroundColor: category.color || "#4EDEA3",
+                    width: `${Math.min(1, Math.max(0, category.percent)) * 100}%`,
+                  }}
+                />
+              ))}
+            </div>
+            <ul className="space-y-2">
+              {card.categories.slice(0, 5).map((category) => (
+                <li key={category.categoryId ?? category.name}>
+                  <div className="mb-1 flex justify-between gap-2 text-xs">
+                    <span className="truncate">{category.name}</span>
+                    <span className="financial font-semibold">{formatIDR(category.total)}</span>
+                  </div>
+                  <Progress value={Math.min(1, category.percent)} className="h-1.5" />
+                </li>
+              ))}
+            </ul>
+          </>
         ) : null}
 
         {card.items && card.items.length > 0 ? (
@@ -143,6 +222,24 @@ export function AssistantCardView({
               </Alert>
             ))}
           </div>
+        ) : null}
+
+        {/* CTA ke halaman nyata (bukan tombol mati): kartu analisis
+            mengarah ke laporan penuh, kartu budget ke halaman budget. */}
+        {card.type === "financial_summary" ? (
+          <Link
+            href="/reports"
+            className="inline-flex items-center text-xs font-semibold text-primary hover:underline"
+          >
+            Lihat laporan lengkap
+          </Link>
+        ) : card.type === "budget_status" && card.budget ? (
+          <Link
+            href="/budget"
+            className="inline-flex items-center text-xs font-semibold text-primary hover:underline"
+          >
+            Kelola budget
+          </Link>
         ) : null}
 
         {card.missingFields && card.missingFields.length > 0 ? (
