@@ -3,7 +3,7 @@
 // sending still works, and scrolling up reveals the jump button.
 import { chromium } from "@playwright/test";
 
-const WEB = "http://localhost:3000";
+const WEB = process.env.WEB_URL || "http://localhost:3000";
 const API = "http://localhost:8080/api/v1";
 
 const login = await fetch(`${API}/auth/login`, {
@@ -56,7 +56,15 @@ const after = await page.evaluate(() => {
   return {
     replyRendered: replyVisible,
     atBottom: viewport ? viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - 4 : null,
+    edge: viewport ? viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight : null,
+    top: viewport ? Math.round(viewport.scrollTop) : null,
+    client: viewport ? viewport.clientHeight : null,
+    scroll: viewport ? viewport.scrollHeight : null,
     jumpActive: jump ? jump.getAttribute("data-active") : null,
+    jumpInert: jump ? jump.hasAttribute("inert") : null,
+    autoscrolling: document.querySelector('[data-slot="message-scroller"]')?.hasAttribute("data-autoscrolling") ?? null,
+    words: document.querySelectorAll(".stream-word").length,
+    pendingWords: document.querySelectorAll(".stream-word-pending").length,
     itemCount: document.querySelectorAll('[data-slot="message-scroller-item"]').length,
   };
 });

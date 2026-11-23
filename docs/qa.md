@@ -473,3 +473,37 @@ Respons asisten kini tampil seperti patokan `design-refs/motion-streaming-reply.
 node tests/verify-streaming.mjs               # pill + stream + final (butuh stack jalan)
 E2E_WEB_URL=http://localhost:3000 npm run test:e2e
 ```
+
+## 21. Perbaikan tinggi halaman & message-scroller sesuai dokumentasi (23 November 2026)
+
+**Gejala:** setelah `message-scroller` terpasang, halaman `/assistant` memanjang ke bawah (dokumen scrollable). **Akar masalah:** rantai tinggi layout asisten — `min-h-dvh` tanpa `min-h-0` pada baris konten membuat tinggi halaman ditentukan konten dari bawah ke atas; scroller baru *mengungkap* bug lama ini (verifikasi skrip sebelumnya "lolos" justru karena viewport ikut setinggi konten sehingga posisi *bottom* selalu trivially true).
+
+| Keputusan | Detail |
+|---|---|
+| Perbaikan tinggi | Outer `flex min-h-dvh` → **`flex h-dvh`** (2 tempat) + **`min-h-0`** pada baris konten; tinggi halaman kini = viewport, scroller mengisi sisa ruang (sesuai prinsip docs: *"MessageScroller fills its parent, place it inside a height-constrained container"*) |
+| Pemakaian sesuai docs | `MessageScrollerProvider` kini memakai **`autoScroll`** (ikut live edge selama pembaca di edge) + **`defaultScrollPosition="last-anchor"`** (thread tersimpan dibuka di giliran terakhir, bukan absolute bottom — rekomendasi resmi) |
+| Anchor giliran | Tiap `MessageScrollerItem` diberi **`messageId`** + **`scrollAnchor={message.role === "user"}`** (anchor = baris awal giliran); anchor semu `div h-px` di akhir konten **dihapus** |
+| Baris non-pesan | Semua anak langsung `MessageScrollerContent` (error, welcome, pill "Berpikir…") kini dibungkus `MessageScrollerItem` — docs: *"wrap every direct child of the content"* |
+| Padding pindah ke Content | `py-6` dipindah dari `Viewport` ke `Content`. Sebelumnya scrollHeight viewport menyertakan padding 24px, sedangkan primitive menyelaraskan **konten** rata ke bawah viewport → `edge` selalu 24px (posisi visually benar, tapi at-bottom tidak pernah terpenuhi). Dengan padding di Content, state akhir primitive = `edge:0` konsisten **dan** ruang napas 24px ikut tampil di bawah pesan terakhir |
+| Diagnostik | `tests/diagnose-scroller.mjs` (probe tinggi Root→dokumen, mendukung `WEB_URL`) dan `tests/verify-scroller.mjs` (mount + kirim pesan + at-bottom; kini mendukung `WEB_URL`) |
+
+**Verifikasi:**
+
+| Pemeriksaan | Hasil |
+|---|---|
+| `tsc` · `eslint` | **0 · 0** |
+| `node tests/diagnose-scroller.mjs` (dev `:3001` & produksi `:3000`) | `pageOverflows: **false**` di 1600px & 900px (sebelum fix: `docScrollH 1475 > viewport 900`) |
+| `node tests/verify-scroller.mjs` | **PASS** — sebelum kirim `atBottom:true`; sesudah kirim `atBottom:true, edge:0, jumpInert:true` (jump button inert = memang tak ada konten di bawah) |
+| `node tests/verify-streaming.mjs` | **PASS** (tak terpengaruh perubahan padding) |
+| `npm run test:e2e` (produksi `:3000`) | **50/50 PASS** |
+
+**Catatan:**
+- Build Docker sempat gagal dua kali karena `fonts.gstatic.com` timeout dari jaringan host (bukan kode); retry setelah jaringan pulih → sukses.
+- Temuan sampingan di luar lingkup perbaikan ini: React **hydration warning #418** muncul saat load di **semua** halaman (`/`, `/assistant`, `/reports`) — pra-ada (pre-existing), tidak mempengaruhi hasil e2e; perlu investigasi terpisah.
+
+**Reproduksi:**
+```bash
+WEB_URL=http://localhost:3000 node tests/diagnose-scroller.mjs   # pageOverflows false ×2
+WEB_URL=http://localhost:3000 node tests/verify-scroller.mjs     # PASS
+E2E_WEB_URL=http://localhost:3000 npm run test:e2e
+```

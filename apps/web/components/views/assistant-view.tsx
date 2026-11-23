@@ -130,7 +130,7 @@ export function AssistantView() {
 
   if (!hasToken()) {
     return (
-      <div className="flex min-h-dvh flex-col">
+      <div className="flex h-dvh flex-col">
         <AssistantHeader />
         <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
           <Alert tone="warning" title="Belum ada token akses">
@@ -147,7 +147,7 @@ export function AssistantView() {
   const history = messages.data ?? [];
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex h-dvh flex-col">
       <AssistantHeader
         onNew={() => {
           setActiveId(null);
@@ -157,7 +157,7 @@ export function AssistantView() {
         sidebarOpen={sidebarOpen}
       />
 
-      <div className="mx-auto flex w-full max-w-6xl flex-1 overflow-hidden">
+      <div className="mx-auto flex w-full max-w-6xl min-h-0 flex-1 overflow-hidden">
         <aside
           className={cn(
             "w-full shrink-0 flex-col border-r border-line bg-background md:flex md:w-64 lg:w-72",
@@ -220,22 +220,31 @@ export function AssistantView() {
         </aside>
 
         <main className="flex min-w-0 flex-1 flex-col">
-          {/* MessageScroller (shadcn): auto-scroll ke anchor + tombol lompat
-              ke pesan terbaru, menggantikan bottomRef manual sebelumnya. */}
-          <MessageScrollerProvider>
+          {/* MessageScroller (shadcn): auto-scroll mengikuti live edge + anchor
+              tiap giliran (pesan user) + tombol lompat — sesuai dokumentasi
+              resmi (ui.shadcn.com/docs/components/base/message-scroller). */}
+          <MessageScrollerProvider autoScroll defaultScrollPosition="last-anchor">
             <MessageScroller className="min-h-0 flex-1 xl:mx-4 xl:my-4 xl:rounded-xl xl:border xl:border-line xl:bg-surface">
-              <MessageScrollerViewport className="px-4 py-6">
-                <MessageScrollerContent className="mx-auto w-full max-w-2xl">
+              <MessageScrollerViewport className="px-4">
+                <MessageScrollerContent className="mx-auto w-full max-w-2xl py-6">
                   {messages.error ? (
-                    <Alert tone="error" title="Percakapan gagal dimuat">{messages.error}</Alert>
+                    <MessageScrollerItem>
+                      <Alert tone="error" title="Percakapan gagal dimuat">{messages.error}</Alert>
+                    </MessageScrollerItem>
                   ) : null}
 
                   {history.length === 0 && !sending && !activeId ? (
-                    <Welcome onPick={(text) => send(text)} />
+                    <MessageScrollerItem className="flex flex-1">
+                      <Welcome onPick={(text) => send(text)} />
+                    </MessageScrollerItem>
                   ) : null}
 
                   {history.map((message) => (
-                    <MessageScrollerItem key={message.id}>
+                    <MessageScrollerItem
+                      key={message.id}
+                      messageId={message.id}
+                      scrollAnchor={message.role === "user"}
+                    >
                       <MessageBubble
                       message={message}
                       onApproved={messages.reload}
@@ -248,22 +257,20 @@ export function AssistantView() {
                   {/* Pill "Berpikir…" — status menunggu LLM yang sesungguhnya
                       (request masih berjalan), menggantikan spinner generik. */}
                   {sending ? (
-                    <div className="flex items-start gap-2" role="status" aria-live="polite">
-                      <span
-                        aria-hidden
-                        className="hidden size-8 shrink-0 place-items-center rounded-full bg-ai/10 text-ai ring-1 ring-ai/20 xl:grid"
-                      >
-                        <MessagesSquare className="size-4" />
-                      </span>
-                      <span className="reply-think rounded-2xl rounded-tl-sm border border-line bg-surface-low px-3.5 py-2.5 text-sm leading-6">
-                        Berpikir…
-                      </span>
-                    </div>
+                    <MessageScrollerItem>
+                      <div className="flex items-start gap-2" role="status" aria-live="polite">
+                        <span
+                          aria-hidden
+                          className="hidden size-8 shrink-0 place-items-center rounded-full bg-ai/10 text-ai ring-1 ring-ai/20 xl:grid"
+                        >
+                          <MessagesSquare className="size-4" />
+                        </span>
+                        <span className="reply-think rounded-2xl rounded-tl-sm border border-line bg-surface-low px-3.5 py-2.5 text-sm leading-6">
+                          Berpikir…
+                        </span>
+                      </div>
+                    </MessageScrollerItem>
                   ) : null}
-
-                  <MessageScrollerItem scrollAnchor>
-                    <div aria-hidden className="h-px w-full" />
-                  </MessageScrollerItem>
                 </MessageScrollerContent>
               </MessageScrollerViewport>
               <MessageScrollerButton direction="end" size="sm" />
