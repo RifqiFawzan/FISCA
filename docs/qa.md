@@ -633,3 +633,143 @@ WEB_URL=http://localhost:3000 node tests/verify-bubble-pair.mjs    # AI ELEMENTS
 node tests/shot-userpair.mjs                                       # pasangan bubble pengguna+asisten
 E2E_WEB_URL=http://localhost:3000 npm run test:e2e
 ```
+
+## 26. Perbaikan pencarian riwayat (union kategori + teks) & akses HP via nginx (23 November 2026)
+
+Dua temuan dari pengujian nyata (bukan dari skrip):
+
+### A. Mencari "gaji" tidak menampilkan transaksi Uncategorized
+
+**Gejala:** transaksi pemasukan tanpa kategori yang menyebut "gaji" tidak muncul di pencarian Riwayat.
+
+**Akar masalah** (`service/search.go`): query `"gaji"` ditafsirkan sebagai **filter kategori** (`stringMatchesQuery` cocok dengan kategori bawaan "Gaji") dan katanya **dihapus** dari sisa teks (`leftoverText`) → eksekusi hanya `WHERE category_id = '<Gaji>'`. Baris dengan `category_id NULL` (uncategorized) mustahil cocok, dan baris kategori lain yang menyebut "gaji" di deskripsi pun ikut hilang.
+
+| Keputusan | Detail |
+|---|---|
+| Perbaikan | **Union**: untuk query nama-kategori murni (`CategoryID terisi && Text kosong`), jalankan juga pencarian teks `Q = CategoryName` (ILIKE deskripsi/merchant), gabung dua daftar urut terbaru (`mergeTransactionsNewestFirst`), hapus duplikat by id, potong ke `limit` |
+| Pagination | Kedua query berbagi Type/Period/amount/cursor yang sama; `NextCursor` dihitung ulang dari baris terakhir hasil gabungan (atau kosong bila tak ada lagi) |
+| Lingkup | Hanya query kategori murni (kasus terlapor); query multi-kata ber-AND tetap seperti semula |
+| Efek samping | Jalur pencarian asisten (pemakai `SearchTransactions` yang sama) ikut benar |
+
+**Verifikasi:**
+- `go build` · `go vet` · **`go test ./...` semua paket ok**
+- Uji API nyata: `search?q=gaji` → **3 baris**: `[Gaji] Gaji`, **`[UNCATEGORIZED] gaji bulanan`**, `[Freelance] Gaji bulanan` (dua yang terakhir tidak mungkin tampil sebelumnya)
+- Regresi: `search?q=belanja` → `3 baris | Filter: pengeluaran, kategori Belanja` ✓
+- `npm run test:e2e` → **50/50 PASS**
+
+### B. Nginx502 dari HP (login "autentikasi gagal")
+
+**Gejala:** buka `http://<IP-HP>` → halaman tampil, tetapi login gagal. Log nginx: `connect() failed (111: Connection refused) ... upstream http://172.18.0.4:8080`.
+
+**Akar masalah:** nginx meng-cache hasil resolusi nama `api` saat startup; setelah stack Docker di-recreate, container api pindah IP (`172.18.0.6`) → upstream basi → **502**. Firewall & CORS **bukan** penyebab (percobaan HP sudah masuk log; middleware CORS hanya melewatkan origin asing tanpa memblokir, dan akses HP lewat nginx itu same-origin).
+
+| Keputusan | Detail |
+|---|---|
+| Perbaikan | `infra/nginx.conf`: tambah **`resolver 127.0.0.11 valid=10s`** + `proxy_pass` lewat **variabel** (`$web_upstream`/`$api_upstream`) → nama diselesaikan Docker DNS per-request, tahan IP pindah |
+| Komentar | Komentar lama yang keliru ("tidak ada proxy /api") diganti deskripsi yang benar |
+| Verifikasi | `nginx -t` ok → `nginx -s reload`; `POST http://<IP>:80/api/v1/auth/login` + Origin HP → **200 + token** |
+
+**Reproduksi:**
+```bash
+# A: cari nama kategori -> baris uncategorized ikut tampil
+curl -H "Authorization: Bearer $TOKEN" "http://localhost:8080/api/v1/transactions/search?q=gaji"
+# B: jalur HP
+curl -I http://<IP-komputer>/            # nginx -> web
+curl -X POST http://<IP-komputer>/api/v1/auth/login -H 'Content-Type: application/json' -d @login.json
+```
+
+## 27. Audit & perbaikan tampilan mobile (23 November 2026)
+
+Mode antislop **DURING** + skill `layoutmobile`. Alat: **`tests/audit-mobile.mjs`** —9 halaman ×2 lebar HP (390×844,360×740): overflow horizontal + pelakunya, target ketuk <24 (kritis)/<44 (peringatan), teks terpotong, tumpang-tindih nav bawah di akhir scroll, error konsol, meta viewport; screenshot ke `tests/.artifacts/mobile-*`.
+
+**Temuan awal:10 kritis +76 peringatan** (dev). Perbaikan:
+
+| Temuan | Perbaikan | Alasan |
+|---|---|---|
+| Link kartu (Kelola/Laporan/Lihat semua) tinggi **15px** | `inline-flex min-h-11 min-w-11 items-center` | Target sentuh44 (DESIGN §11/R-03); teks tetap `text-xs` |
+| Tombol "Daftar/Masuk" di login **20px** | `py-3` →44 | Sama |
+| Tombol `Button` `sm` **36px** (Baru, Arsipkan, Ubah limit, Muat lebih banyak, Kembali, dst.) | `sizes.sm: h-9 → h-11` (44); icon-only ditambah `min-w-11` | Satu perbaikan di komponen bersih menurunkan puluhan peringatan |
+| Segmented periode/jenis **25px** + teks11px | segmen `min-h-11`, `text-xs` | Filter data = kontrol penting di mobile; juga sejajar dengan tombol44 di sebelahnya (desktop ikut rapi) |
+| Input chat **32px** | `h-11` (44) | Sejajar mic+kirim; Color_Design menyebut tinggi input besar |
+| Chip saran asisten **42px** | `py-3` →44 | Sama |
+| **Baris "Akun & Dompet" berantakan di HP** (meta membungkus, saldo terjepit, tombol+tempat sampah pindah baris) | Reflow dua baris tetap: identitas+saldo di atas; meta+aksi di bawah (`justify-between`, tanpa `flex-wrap`) | "tampilan tidak pakem" terlapor; antislop layoutmobile: reflow, bukan wrap |
+| Hapus percakapan **hover-only** (`opacity-0 group-hover`) — tak bisa di tap | Terlihat selalu di bawah `lg`, hover-reveal hanya di `lg+`; `size-8 → size-11` | R-03: interaksi hover-only = kontrol mati di layar sentuh |
+| Audit salah ukur tombol jump yang *invisible* (`scale-95`) | Audit melewatkan `opacity:0`/`pointer-events:none` dan `sr-only` | Ketepatan alat (bukan penghindaran temuan) |
+
+**Verifikasi (dev lalu produksi `:3000`):**
+
+| Pemeriksaan | Hasil |
+|---|---|
+| `tsc` · `eslint` (8 file tersentuh) | **0 ·0** |
+| `tests/audit-mobile.mjs` | **PASS:0 kritis,0 peringatan** (sebelumnya10+76) — dev & produksi |
+| `tests/verify-profile-rows.mjs` (baru) | **PASS** — tiap baris akun:2 blok, saldo baris1, aksi sebaris dengan meta, semua aksi ≥44×44 |
+| `verify-assistant-card` · `bubble-pair` · `scroller` · `streaming` | **PASS ×4** (1 FAIL card awal = cold-start, PASS ulang) |
+| `verify-hydration` · `verify-sidebar` | **CLEAN · PASS** |
+| `npm run test:e2e` | **50/50 PASS** |
+
+**Reproduksi:**
+```bash
+WEB_URL=http://localhost:3000 node tests/audit-mobile.mjs          # MOBILE AUDIT PASS
+WEB_URL=http://localhost:3000 node tests/verify-profile-rows.mjs   # PROFILE ROWS PASS
+E2E_WEB_URL=http://localhost:3000 npm run test:e2e
+```
+
+## 28. Penyesuaian iPhone/Safari: input anti-zoom + audit iPhone11 (24 November 2026)
+
+**Gejala:** Android sudah pas, iPhone11 "kurang sesuai sedikit".
+
+| Pemeriksaan iOS | Status |
+|---|---|
+| `viewport-fit=cover` (layout.tsx) → `env(safe-area-inset-*)` aktif | ✅ sudah ada sejak awal |
+| `pb-safe`/`pt-safe` (nav bawah, header asisten, footer sheet) | ✅ terdefinisi di globals.css |
+| Meta viewport (boleh zoom manual, tanpa `user-scalable=no`) | ✅ |
+| **iOS auto-zoom saat fokus ke input <16px** | ❌ → **diperbaiki** |
+
+| Perbaikan | Detail |
+|---|---|
+| `field.tsx` base `text-sm` → **`text-base`** | Semua form Field (login, pencarian Riwayat, transaksi, budget, tabungan, profil) kini16px → zoom-iOS tak pernah terpicu. Skala body-md16 tetap sah di DESIGN.md §4.2; R-03 (mobile sempurna) yang menang |
+| Input chat `text-sm` → **`text-base!`** | Menetralkan `md:text-sm` bawaan shadcn `Input` —16px di semua orientasi (lanskap iPhone punya lebar>768) |
+| Input alokasi budget `text-xs` (12px) → `text-base` | Sama; angka tetap `financial` tabular |
+| Audit `audit-mobile.mjs` + lebar **414×896 (iPhone11)** | Kini3 lebar:360/390/**414** |
+| **`tests/verify-iphone.mjs` (baru)** | Engine **WebKit** (Safari) + descriptor `devices["iPhone 11"]` (414×896, UA iPhone, touch): nol overflow horizontal, **semua input ≥16px**, nol error konsol,4 halaman (login/home/assistant/history) + screenshot `tests/.artifacts/iphone-*` |
+
+**Verifikasi (dev lalu produksi):** `tsc`·`eslint` **0·0** · `audit-mobile` **PASS0/0** (3 lebar) · `verify-iphone` **IPHONE11 PASS** · `verify-profile-rows` **PASS** · card/bubble/scroller/streaming/hydration/sidebar **PASS** · e2e **50/50**.
+
+**Reproduksi:**
+```bash
+WEB_URL=http://localhost:3000 node tests/verify-iphone.mjs   # IPHONE11 PASS
+npx playwright install webkit                                # sekali saja
+```
+
+## 29. Asisten paham "hari ini" (periode today) (24 November 2026)
+
+**Gejala (laporan user):** "berapa pengeluaran hari ini" → AI tidak paham konsepnya; pernah mengaku tak punya data, pernah menjawab angka7 hari dengan label "Periode Periode terpilih".
+
+**Akar masalah (5 lapis):**
+1. **Vocabulary periode di prompt AI** (`ai.go`) tanpa `today` → model memilih `7d` terdekat → jawaban salah periode.
+2. **`period.Parse`** tak punya kasus hari-ini (padahal jalur single-day `YYYY-MM-DD` sudah ada).
+3. **`dayRange`** melabeli semua jendela harian **"Periode terpilih"** → template balasan "Periode %s" menghasilkan **"Periode Periode terpilih"** (ganda + tanpa arti).
+4. **`detectPeriodPhrase`** (pencarian) tak mengenali "hari ini" → filter periode tak pernah `today`.
+5. **`financialContext`** hanya membawa ringkasan bulan berjalan → jalur konsultasi tak punya angka hari ini.
+
+| Perbaikan | Detail |
+|---|---|
+| `period.go` | Normalisasi `today`/`hari_ini`/`hari ini` → jalur single-day (label "24 November2026"); **`dayWindowLabel`** menggantikan "Periode terpilih" dengan rentang tanggal nyata ("18-24 November2026") |
+| `ai.go` (prompt) | Enum `period` + **`today`** dan `YYYY-MM-DD`; aturan eksplisit: *pertanyaan harian → spending_summary dengan period "today"; JANGAN mengganti dengan7d/bulan ini* |
+| `Ai_intent.md` §6 | Aturan yang sama terdokumentasi |
+| `search.go` | frasa **"hari ini" → periode `today`** + ikut di-strip dari sisa kata kunci |
+| `assistant.go` | `financialContext` kini selalu menyertakan baris **"Hari ini (…): pemasukan RpX, pengeluaran RpY"** (termasuk saat nol, agar model bisa menjawab jujur Rp0); copy net **"Sisa" → "Selisih"** (sejajar KPI Selisih di Beranda; "Sisa" terdengar seperti sisa budget) |
+| Tes | `period_test.go`: kasus `today` & `hari_ini` (1 hari) |
+
+**Verifikasi:**
+- `go build`·`go vet`·**`go test ./...` semua paket ok**
+- Replikasi nyata: transaksi uji Rp123.456 hari ini → balasan **"Periode24 November2026: … pengeluaran Rp123.456. Defisit Rp123.456."** ✓; `search?q=pengeluaran hari ini` → `periode: today`, **hanya baris hari ini** ✓; setelah di-void → **"…pengeluaran Rp0. Selisih Rp0"** ✓ (angka jujur)
+- Label jendela7d kini **"Periode18-24 November2026"** (bukan "Periode terpilih") ✓
+- `go test` + **e2e50/50 PASS**
+
+**Reproduksi:**
+```bash
+# tanya asisten (butuh token): POST /assistant/messages {"text":"berapa pengeluaran hari ini"}
+# harus memuat periode hari ini + angka backend, bukan7d/bulan
+curl -H "Authorization: Bearer $TOKEN" "http://localhost:8080/api/v1/transactions/search?q=pengeluaran%20hari%20ini"
+```

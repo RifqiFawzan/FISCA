@@ -256,7 +256,7 @@ export function LoginView() {
             <button
               type="button"
               onClick={toggleMode}
-              className="w-full text-center text-sm text-primary hover:underline"
+              className="w-full py-3 text-center text-sm text-primary hover:underline"
             >
               {mode === "signin" ? "Belum punya akun? Daftar" : "Sudah punya akun? Masuk"}
             </button>

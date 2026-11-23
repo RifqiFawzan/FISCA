@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -165,7 +167,68 @@ func (s *Service) SearchTransactions(ctx context.Context, q *generated.Queries, 
 	if err != nil {
 		return SearchResult{}, err
 	}
+
+	// A pure category-name query ("gaji") used to filter on category_id
+	// alone, so an uncategorized row whose description mentions the word
+	// never showed up. Union a text search on the same keyword: category
+	// members plus any row that mentions it, deduplicated newest-first.
+	// Both queries share Type/Period/amounts and the same cursor, so the
+	// merged page keeps paging coherent.
+	if filters.CategoryID != "" && filters.Text == "" && limit > 0 {
+		hadMore := page.NextCursor != ""
+		alt, err := s.ListTransactions(ctx, q, userID, ListTransactionsInput{
+			Type:      filters.Type,
+			Q:         filters.CategoryName,
+			Period:    filters.Period,
+			Limit:     limit,
+			MinAmount: filters.MinAmount,
+			MaxAmount: filters.MaxAmount,
+		})
+		if err != nil {
+			return SearchResult{}, err
+		}
+		if alt.NextCursor != "" {
+			hadMore = true
+		}
+		page.Items = mergeTransactionsNewestFirst(page.Items, alt.Items, limit)
+		page.NextCursor = ""
+		if hadMore && len(page.Items) > 0 {
+			last := page.Items[len(page.Items)-1]
+			if ts, err := time.Parse(time.RFC3339, last.OccurredAt); err == nil {
+				page.NextCursor = encodeCursor(ts, last.ID)
+			}
+		}
+	}
 	return SearchResult{Filters: filters, Items: page.Items, Next: page.NextCursor}, nil
+}
+
+// mergeTransactionsNewestFirst unions two newest-first transaction lists
+// (same ORDER BY as ListTransactions), dropping duplicate ids and keeping
+// at most limit rows so cursor paging stays coherent.
+func mergeTransactionsNewestFirst(a, b []TransactionDTO, limit int) []TransactionDTO {
+	seen := make(map[string]struct{}, len(a)+len(b))
+	merged := make([]TransactionDTO, 0, len(a)+len(b))
+	for _, list := range [][]TransactionDTO{a, b} {
+		for _, tx := range list {
+			if _, ok := seen[tx.ID]; ok {
+				continue
+			}
+			seen[tx.ID] = struct{}{}
+			merged = append(merged, tx)
+		}
+	}
+	sort.Slice(merged, func(i, j int) bool {
+		ti, _ := time.Parse(time.RFC3339, merged[i].OccurredAt)
+		tj, _ := time.Parse(time.RFC3339, merged[j].OccurredAt)
+		if !ti.Equal(tj) {
+			return ti.After(tj)
+		}
+		return merged[i].ID > merged[j].ID
+	})
+	if len(merged) > limit {
+		merged = merged[:limit]
+	}
+	return merged
 }
 
 func stringMatchesQuery(name, text string) bool {
@@ -189,6 +252,7 @@ func detectPeriodPhrase(text string, year int) (periodKey, label string) {
 		period string
 		label  string
 	}{
+		{"hari ini", "today", "hari ini"},
 		{"bulan lalu", "last_month", "bulan lalu"},
 		{"bulan kemarin", "last_month", "bulan lalu"},
 		{"bulan ini", "this_month", "bulan ini"},
@@ -253,6 +317,7 @@ func leftoverText(text string, filters SearchFilters, categories []generated.Cat
 	text = belowAmountRe.ReplaceAllString(text, " ")
 	for _, phrase := range []string{
 		"bulan lalu", "bulan kemarin", "bulan ini", "minggu ini", "minggu lalu",
+		"hari ini",
 		"7 hari", "30 hari", "90 hari", "tahun ini", "tahun lalu",
 		"paling besar", "termahal", "terbesar",
 	} {

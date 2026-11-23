@@ -155,7 +155,7 @@ export function ProfileView() {
               <CardBody>
                 <ul className="divide-y divide-line">
                   {data.accounts.map((account) => (
-                    <li key={account.id} className="flex flex-wrap items-center gap-3 py-3">
+                    <li key={account.id} className="flex items-center gap-3 py-3">
                       <span
                         aria-hidden
                         className={`grid size-9 shrink-0 place-items-center rounded-lg bg-surface-high text-[11px] font-bold ${
@@ -170,28 +170,40 @@ export function ProfileView() {
                       >
                         {account.name.slice(0, 2).toUpperCase()}
                       </span>
+                      {/* Dua baris tetap: identitas + saldo di atas, meta +
+                          aksi di bawah. Baris tidak pernah membungkus
+                          berantakan di layar sempit (antislop layoutmobile). */}
                       <div className="min-w-0 flex-1">
-                        <p className="flex items-center gap-2 text-sm font-medium">
-                          <span className="truncate">{account.name}</span>
-                          {account.isDefault ? <Badge tone="primary">Utama</Badge> : null}
-                        </p>
-                        <p className="mt-0.5 text-xs capitalize text-muted">
-                          {account.type} · dibuat {formatDayMonthYear(account.createdAt)}
-                        </p>
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="flex min-w-0 items-center gap-2 text-sm font-medium">
+                            <span className="truncate">{account.name}</span>
+                            {account.isDefault ? <Badge tone="primary">Utama</Badge> : null}
+                          </p>
+                          <span className="financial shrink-0 text-sm font-semibold">
+                            {formatIDR(account.balance)}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between gap-2">
+                          <p className="min-w-0 truncate text-xs capitalize text-muted">
+                            {account.type} · dibuat {formatDayMonthYear(account.createdAt)}
+                          </p>
+                          <div className="flex shrink-0 items-center gap-1">
+                            {!account.isDefault ? (
+                              <Button size="sm" variant="ghost" onClick={() => setDefault(account.id)}>
+                                Jadikan utama
+                              </Button>
+                            ) : null}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="min-w-11"
+                              aria-label={`Arsipkan ${account.name}`}
+                              icon={<Trash2 className="size-3.5" aria-hidden />}
+                              onClick={() => archiveAccount(account.id)}
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <span className="financial text-sm font-semibold">{formatIDR(account.balance)}</span>
-                      {!account.isDefault ? (
-                        <Button size="sm" variant="ghost" onClick={() => setDefault(account.id)}>
-                          Jadikan utama
-                        </Button>
-                      ) : null}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        aria-label={`Arsipkan ${account.name}`}
-                        icon={<Trash2 className="size-3.5" aria-hidden />}
-                        onClick={() => archiveAccount(account.id)}
-                      />
                     </li>
                   ))}
                 </ul>
@@ -229,6 +241,7 @@ export function ProfileView() {
                         <Button
                           size="sm"
                           variant="ghost"
+                          className="min-w-11"
                           aria-label={`Arsipkan ${category.name}`}
                           icon={<Trash2 className="size-3.5" aria-hidden />}
                           onClick={() => archiveCategory(category.id)}

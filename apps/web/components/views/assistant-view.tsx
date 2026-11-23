@@ -222,7 +222,7 @@ export function AssistantView() {
                       type="button"
                       aria-label={`Hapus ${conversation.title ?? "percakapan"}`}
                       onClick={() => removeConversation(conversation)}
-                      className="grid size-8 shrink-0 place-items-center rounded-md text-muted-dim opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100"
+                      className="grid size-11 shrink-0 place-items-center rounded-md text-muted-dim opacity-100 transition-opacity hover:bg-danger/10 hover:text-danger focus:opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
                     >
                       <Trash2 className="size-3.5" aria-hidden />
                     </button>
@@ -287,7 +287,7 @@ export function AssistantView() {
                   ) : null}
                 </MessageScrollerContent>
               </MessageScrollerViewport>
-              <MessageScrollerButton direction="end" size="sm" />
+              <MessageScrollerButton direction="end" size="sm" className="min-h-11 min-w-11" />
             </MessageScroller>
           </MessageScrollerProvider>
 
@@ -307,7 +307,7 @@ export function AssistantView() {
                       type="button"
                       onClick={() => send(suggestion)}
                       disabled={sending}
-                      className="rounded-full border border-line bg-surface-low px-3.5 py-2.5 text-sm text-muted transition-colors hover:border-primary/40 hover:text-foreground disabled:opacity-50"
+                      className="rounded-full border border-line bg-surface-low px-3.5 py-3 text-sm text-muted transition-colors hover:border-primary/40 hover:text-foreground disabled:opacity-50"
                     >
                       {suggestion}
                     </button>
@@ -334,7 +334,7 @@ export function AssistantView() {
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
                     disabled={recording || transcribing}
-                    className="text-sm text-foreground placeholder:text-muted-dim disabled:opacity-60"
+                    className="h-11 text-base! text-foreground placeholder:text-muted-dim disabled:opacity-60"
                   />
                   <InputGroupAddon align="inline-end" className="m-0 gap-2 p-0">
                     <button
@@ -421,6 +421,7 @@ function AssistantHeader({
           <Button
             size="sm"
             variant="secondary"
+            className="min-w-11"
             icon={<Plus className="size-3.5" aria-hidden />}
             onClick={onNew}
           >
@@ -504,7 +505,7 @@ function Welcome({ onPick }: { onPick: (text: string) => void }) {
             key={suggestion}
             type="button"
             onClick={() => onPick(suggestion)}
-            className="rounded-full border border-line bg-surface-low px-3.5 py-2.5 text-sm text-muted transition-colors hover:border-primary/40 hover:text-foreground"
+            className="rounded-full border border-line bg-surface-low px-3.5 py-3 text-sm text-muted transition-colors hover:border-primary/40 hover:text-foreground"
           >
             {suggestion}
           </button>

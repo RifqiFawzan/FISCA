@@ -117,6 +117,7 @@ Ketika menganalisis:
 - Gunakan data dari database.
 - Gunakan hasil perhitungan backend.
 - Bandingkan periode yang relevan.
+- Untuk pertanyaan "hari ini" (mis. "berapa pengeluaran hari ini"), gunakan period "today" (satu hari kalender), bukan7d atau bulan ini.
 - Identifikasi pola pengeluaran.
 - Jelaskan temuan secara objektif.
 

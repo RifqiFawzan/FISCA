@@ -232,14 +232,14 @@ export function AssistantCardView({
         {card.type === "financial_summary" ? (
           <Link
             href="/reports"
-            className="inline-flex items-center text-xs font-semibold text-primary hover:underline"
+            className="inline-flex min-h-11 items-center text-xs font-semibold text-primary hover:underline"
           >
             Lihat laporan lengkap
           </Link>
         ) : card.type === "budget_status" && card.budget ? (
           <Link
             href="/budget"
-            className="inline-flex items-center text-xs font-semibold text-primary hover:underline"
+            className="inline-flex min-h-11 items-center text-xs font-semibold text-primary hover:underline"
           >
             Kelola budget
           </Link>

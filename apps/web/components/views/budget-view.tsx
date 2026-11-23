@@ -395,7 +395,7 @@ function CreateBudgetSheet({
                     onChange={(event) =>
                       setAllocations((prev) => ({ ...prev, [category.id]: event.target.value }))
                     }
-                    className="financial h-9 w-28 rounded-md border border-line bg-background px-2 text-right text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="financial h-9 w-28 rounded-md border border-line bg-background px-2 text-right text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 </label>
               ))}

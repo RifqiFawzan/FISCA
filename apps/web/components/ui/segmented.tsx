@@ -34,8 +34,9 @@ export function Segmented<T extends string>({
             aria-pressed={active}
             onClick={() => onChange(option.value)}
             className={cn(
-              "shrink-0 whitespace-nowrap rounded-md font-medium transition-colors",
-              size === "sm" ? "px-2 py-1 text-[11px]" : "px-3 py-1.5 text-sm",
+              "min-h-11 shrink-0 whitespace-nowrap rounded-md font-medium transition-colors",
+              // Semua ukuran dapat target sentuh44px (DESIGN.md §11).
+              size === "sm" ? "px-3 text-xs" : "px-3.5 text-sm",
               active
                 ? "bg-surface-highest text-foreground shadow-sm"
                 : "text-muted hover:text-foreground",

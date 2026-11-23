@@ -8,7 +8,9 @@ import type {
 import { cn } from "@/lib/cn";
 
 const base =
-  "w-full rounded-lg border border-line bg-surface-low px-3 text-sm text-foreground placeholder:text-muted-dim focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60";
+  // text-base (16px): iOS Safari auto-zoom membidik input <16px saat fokus,
+  // membuat halaman "lompat" di iPhone; skala body-md tetap sah (DESIGN.md §4.2).
+  "w-full rounded-lg border border-line bg-surface-low px-3 text-base text-foreground placeholder:text-muted-dim focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60";
 
 export function Label({
   htmlFor,

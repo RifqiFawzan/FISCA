@@ -143,7 +143,7 @@ func (c *Client) ExtractIntent(ctx context.Context, text string, cctx Context) (
  "description":"",
  "categoryName":"",
  "accountName":"",
- "period":"this_month|last_month|7d|30d|90d|this_year|YYYY-MM|",
+ "period":"today|this_month|last_month|7d|30d|90d|this_year|YYYY-MM|YYYY-MM-DD|",
  "query":"",
  "answer":"",
  "rationale":"",
@@ -152,6 +152,7 @@ func (c *Client) ExtractIntent(ctx context.Context, text string, cctx Context) (
 Klasifikasi pesan (kind):
 - create_transaction = pengguna MELAPORKAN transaksi aktual ("tadi saya makan siang25 ribu").
 - spending_summary = "berapa/total/ringkasan" pemasukan atau pengeluaran, termasuk "analisis keuangan/pengeluaran/bulanku" dan permintaan data ringkas lain (kartu datanya tampil).
+- Pertanyaan harian ("berapa pengeluaran hari ini") -> spending_summary dengan period "today"; JANGAN mengganti dengan7d,30d, atau bulan ini.
 - largest_transactions = "paling besar/termahal/terbesar".
 - unusual_spending = mencari pengeluaran menyimpang/anomali.
 - search = "cari/riwayat/daftar transaksi ...".

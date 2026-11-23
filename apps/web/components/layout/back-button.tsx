@@ -20,7 +20,7 @@ export function BackButton() {
       type="button"
       onClick={goBack}
       aria-label="Kembali"
-      className="grid size-9 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-surface-high hover:text-foreground"
+      className="grid size-11 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-surface-high hover:text-foreground"
     >
       <ArrowLeft className="size-5" aria-hidden />
     </button>

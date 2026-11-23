@@ -54,6 +54,12 @@ func Parse(raw string, loc *time.Location, now time.Time) (Range, error) {
 	raw = strings.ToLower(strings.TrimSpace(raw))
 	local := now.In(loc)
 
+	// "hari ini" (prompt AI, pencarian, UI) = satu hari kalender hari ini;
+	// dipetakan ke jalur single-day yang sudah ada.
+	if raw == "today" || raw == "hari_ini" || raw == "hari ini" || raw == "hari-ini" {
+		raw = local.Format("2006-01-02")
+	}
+
 	switch raw {
 	case "", "this_month", "bulan_ini", "current_month":
 		return CurrentMonth(loc, now), nil
@@ -136,7 +142,20 @@ func monthRange(start time.Time, loc *time.Location) Range {
 func dayRange(start, endLocal time.Time, loc *time.Location) Range {
 	start = time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, loc)
 	end := time.Date(endLocal.Year(), endLocal.Month(), endLocal.Day(), 0, 0, 0, 0, loc).AddDate(0, 0, 1)
-	return fullRange(start, end, loc, "Periode terpilih", "day")
+	return fullRange(start, end, loc, dayWindowLabel(start, end), "day")
+}
+
+// dayWindowLabel names a rolling day window by its dates ("17-23 November
+// 2026"). It must not say "Periode terpilih": the reply template already
+// prefixes "Periode", and the reader needs the actual range.
+func dayWindowLabel(start, endExclusive time.Time) string {
+	end := endExclusive.AddDate(0, 0, -1)
+	if start.Year() == end.Year() && start.Month() == end.Month() {
+		return fmt.Sprintf("%d-%d %s %d", start.Day(), end.Day(), monthName(start.Month()), start.Year())
+	}
+	return fmt.Sprintf("%d %s - %d %s %d",
+		start.Day(), monthName(start.Month()),
+		end.Day(), monthName(end.Month()), end.Year())
 }
 
 func fullRange(start, end time.Time, loc *time.Location, label, bucket string) Range {

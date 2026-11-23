@@ -236,6 +236,15 @@ func (s *Service) financialContext(ctx context.Context, q *generated.Queries, us
 		formatRupiahPlain(dash.Summary.Expense),
 		formatRupiahPlain(dash.Summary.Net),
 	)
+	// Hari ini selalu disertakan: pertanyaan harian ("berapa pengeluaran
+	// hari ini") harus terjawab dari angka backend, termasuk saat nol.
+	if today, err := s.Dashboard(ctx, q, userID, "today"); err == nil {
+		fmt.Fprintf(&b, " Hari ini (%s): pemasukan Rp%s, pengeluaran Rp%s.",
+			today.Period.Label,
+			formatRupiahPlain(today.Summary.Income),
+			formatRupiahPlain(today.Summary.Expense),
+		)
+	}
 	if dash.Budget != nil {
 		fmt.Fprintf(&b, " Budget %s: batas Rp%s, terpakai Rp%s, sisa Rp%s (%.0f%% terpakai).",
 			dash.Period.Label,
@@ -319,8 +328,10 @@ func (s *Service) routeIntent(
 			return "", Card{}, err
 		}
 		// Jawaban memakai angka hasil backend (Ai_intent.md §6/§11) dan
-		// dibuat ramah, bukan sekadar konfirmasi proses.
-		tail := "Sisa Rp" + formatRupiahPlain(dashboard.Summary.Net)
+		// dibuat ramah, bukan sekadar konfirmasi proses. "Selisih" = net,
+		// istilah yang sama dengan KPI Selisih di Beranda (bukan "Sisa"
+		// yang terdengar seperti sisa budget).
+		tail := "Selisih Rp" + formatRupiahPlain(dashboard.Summary.Net)
 		if dashboard.Summary.Net < 0 {
 			tail = "Defisit Rp" + formatRupiahPlain(-dashboard.Summary.Net)
 		}

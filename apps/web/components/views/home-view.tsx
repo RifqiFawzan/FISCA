@@ -231,7 +231,7 @@ export function HomeView() {
                   title="Budget bulan ini"
                   description={data.budget ? `Batas ${formatIDR(data.budget.overallLimit)}` : undefined}
                   action={
-                    <Link href="/budget" className="text-xs font-semibold text-primary hover:underline">
+                    <Link href="/budget" className="inline-flex min-h-11 min-w-11 items-center text-xs font-semibold text-primary hover:underline">
                       Kelola
                     </Link>
                   }
@@ -281,7 +281,7 @@ export function HomeView() {
                   title="Kategori terbesar"
                   description={`Distribusi pengeluaran ${data.period.label}`}
                   action={
-                    <Link href="/reports" className="text-xs font-semibold text-primary hover:underline">
+                    <Link href="/reports" className="inline-flex min-h-11 min-w-11 items-center text-xs font-semibold text-primary hover:underline">
                       Laporan
                     </Link>
                   }
@@ -306,7 +306,7 @@ export function HomeView() {
                       : "Target dihitung dari saldo akun yang ditautkan"
                   }
                   action={
-                    <Link href="/savings" className="text-xs font-semibold text-primary hover:underline">
+                    <Link href="/savings" className="inline-flex min-h-11 min-w-11 items-center text-xs font-semibold text-primary hover:underline">
                       Kelola
                     </Link>
                   }
@@ -347,7 +347,7 @@ export function HomeView() {
                   title="Akun & dompet"
                   description={`${data.accounts.length} akun terdaftar`}
                   action={
-                    <Link href="/profile" className="text-xs font-semibold text-primary hover:underline">
+                    <Link href="/profile" className="inline-flex min-h-11 min-w-11 items-center text-xs font-semibold text-primary hover:underline">
                       Kelola
                     </Link>
                   }
@@ -404,7 +404,7 @@ export function HomeView() {
               title="Transaksi terakhir"
               description="Lima transaksi paling baru"
               action={
-                <Link href="/history" className="text-xs font-semibold text-primary hover:underline">
+                <Link href="/history" className="inline-flex min-h-11 min-w-11 items-center text-xs font-semibold text-primary hover:underline">
                   Lihat semua
                 </Link>
               }

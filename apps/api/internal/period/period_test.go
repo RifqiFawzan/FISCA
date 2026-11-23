@@ -64,6 +64,8 @@ func TestParseRollingWindows(t *testing.T) {
 		{"7d", 7},
 		{"30d", 30},
 		{"90d", 90},
+		{"today", 1},
+		{"hari_ini", 1},
 	}
 	for _, tc := range cases {
 		t.Run(tc.raw, func(t *testing.T) {
