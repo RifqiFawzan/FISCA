@@ -3,7 +3,7 @@
 // bar, and the real /reports CTA.
 import { chromium } from "@playwright/test";
 
-const WEB = "http://localhost:3000";
+const WEB = process.env.WEB_URL || "http://localhost:3000";
 const API = "http://localhost:8080/api/v1";
 
 const login = await fetch(`${API}/auth/login`, {

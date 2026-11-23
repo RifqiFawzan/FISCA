@@ -80,12 +80,13 @@ export function Badge({
     warning: "bg-warning/15 text-warning",
     danger: "bg-danger/15 text-danger",
     income: "bg-income/15 text-income",
-    ai: "bg-ai/15 text-ai",
+    ai: "bg-ai/15 text-ai ring-1 ring-ai/25",
   };
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-[11px] font-semibold",
+        // Pill shape per Color_Design.md status badges (rounded-full).
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
         tones[tone],
       )}
     >

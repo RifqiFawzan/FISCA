@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 
-import { api, errorMessage, hasToken } from "@/lib/api";
+import { api, errorMessage, useHasToken } from "@/lib/api";
 import type { Transaction } from "@/lib/api";
 import { useAction, useApi } from "@/lib/use-api";
 import { useIsDesktop } from "@/lib/use-desktop";
@@ -102,7 +102,9 @@ export function HistoryView() {
     setNonce((n) => n + 1);
   }
 
-  if (!hasToken()) {
+  const authed = useHasToken();
+
+  if (!authed) {
     return (
       <div className="space-y-6">
         <PageHeader title="Riwayat" />

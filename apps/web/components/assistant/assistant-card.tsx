@@ -75,7 +75,10 @@ export function AssistantCardView({
         {trend.length > 0 ? (
           <div className="rounded-lg border border-line bg-surface-low p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+              {/* Sentence case, bukan uppercase: judul saudara di kartu juga
+                  sentence case, dan DESIGN.md §4.2 melarang micro-label
+                  uppercase untuk frasa Indonesia yang panjang. */}
+              <p className="text-xs font-semibold text-muted">
                 Tren masuk vs keluar
               </p>
               <span className="flex items-center gap-3 text-[11px] text-muted">

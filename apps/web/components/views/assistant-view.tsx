@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MessagesSquare, Mic, Plus, Send, Square, Trash2, UserRound, X } from "lucide-react";
 
-import { api, errorMessage, hasToken } from "@/lib/api";
+import { api, errorMessage, useHasToken } from "@/lib/api";
 import type { AssistantMessage, Conversation } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import { relativeTime } from "@/lib/format";
@@ -17,6 +17,9 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller";
+import { Message, MessageAvatar, MessageContent } from "@/components/ui/message";
+import { Bubble, BubbleContent } from "@/components/ui/bubble";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Alert, Spinner } from "@/components/ui/feedback";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -128,7 +131,9 @@ export function AssistantView() {
     }
   }
 
-  if (!hasToken()) {
+  const authed = useHasToken();
+
+  if (!authed) {
     return (
       <div className="flex h-dvh flex-col">
         <AssistantHeader />
@@ -199,8 +204,17 @@ export function AssistantView() {
                           : "text-muted hover:bg-surface-low hover:text-foreground",
                       )}
                     >
-                      <span className="block truncate font-medium">{conversation.title ?? "Percakapan"}</span>
-                      <span className="block truncate text-[11px] text-muted-dim">
+                      <span
+                        className={cn(
+                          "block truncate font-medium",
+                          // Non-color active signal alongside the row tint
+                          // (DESIGN.md §2.7: status must not rely on color alone).
+                          activeId === conversation.id && "font-semibold",
+                        )}
+                      >
+                        {conversation.title ?? "Percakapan"}
+                      </span>
+                      <span className="block truncate text-xs text-muted-dim">
                         {relativeTime(conversation.lastMessageAt)}
                       </span>
                     </button>
@@ -293,7 +307,7 @@ export function AssistantView() {
                       type="button"
                       onClick={() => send(suggestion)}
                       disabled={sending}
-                      className="rounded-full border border-line bg-surface-low px-3 py-1.5 text-xs text-muted transition-colors hover:border-primary/40 hover:text-foreground disabled:opacity-50"
+                      className="rounded-full border border-line bg-surface-low px-3.5 py-2.5 text-sm text-muted transition-colors hover:border-primary/40 hover:text-foreground disabled:opacity-50"
                     >
                       {suggestion}
                     </button>
@@ -306,48 +320,60 @@ export function AssistantView() {
                   event.preventDefault();
                   send(input);
                 }}
-                className="flex items-center gap-2 rounded-xl border border-line bg-surface-low px-3 py-2.5 focus-within:border-primary/50"
               >
-                <input
-                  aria-label="Tulis pesan"
-                  placeholder={recording ? "Merekam suara…" : "Tulis: catat kopi 18rb"}
-                  value={input}
-                  onChange={(event) => setInput(event.target.value)}
-                  disabled={recording || transcribing}
-                  className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-dim focus:outline-none disabled:opacity-60"
-                />
-                <button
-                  type="button"
-                  onClick={toggleRecording}
-                  disabled={transcribing || sending}
-                  aria-label={recording ? "Hentikan rekaman" : "Rekam suara"}
-                  className={cn(
-                    "grid size-9 shrink-0 place-items-center rounded-lg transition-colors xl:size-11 xl:rounded-xl",
-                    recording
-                      ? "bg-danger/20 text-danger xl:bg-danger/25"
-                      : "text-muted hover:bg-surface-high hover:text-foreground xl:bg-primary xl:text-on-primary xl:shadow-glow-primary xl:hover:bg-primary-hover",
-                  )}
-                >
-                  {transcribing ? (
-                    <Spinner />
-                  ) : recording ? (
-                    <Square className="size-4" aria-hidden />
-                  ) : (
-                    <Mic className="size-4" aria-hidden />
-                  )}
-                </button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={!input.trim() || sending || recording || transcribing}
-                  loading={sending}
-                  icon={<Send className="size-4" aria-hidden />}
-                  aria-label="Kirim pesan"
-                >
-                  <span className="hidden sm:inline">Kirim</span>
-                </Button>
+                {/* Prompt Input ala AI Elements: InputGroup shadcn membawa
+                    role="group" + kontrol tanpa border sendiri; warna/touch
+                    target tetap token FISCA (label & tombol e2e tidak berubah). */}
+                {/* opacity override: tombol mic tidak bergantung pada teks
+                    input, jadi grup tidak boleh ikut redup saat Kirim
+                    disabled; kontrol mati diberi style sendiri-sendiri. */}
+                <InputGroup className="h-auto rounded-xl border-line bg-surface-low px-3 py-2.5 has-disabled:opacity-100 focus-within:border-line-focus">
+                  <InputGroupInput
+                    aria-label="Tulis pesan"
+                    placeholder={recording ? "Merekam suara…" : "Tulis: catat kopi 18rb"}
+                    value={input}
+                    onChange={(event) => setInput(event.target.value)}
+                    disabled={recording || transcribing}
+                    className="text-sm text-foreground placeholder:text-muted-dim disabled:opacity-60"
+                  />
+                  <InputGroupAddon align="inline-end" className="m-0 gap-2 p-0">
+                    <button
+                      type="button"
+                      onClick={toggleRecording}
+                      disabled={transcribing || sending}
+                      aria-label={recording ? "Hentikan rekaman" : "Rekam suara"}
+                      className={cn(
+                        // Voice stays the prominent action at every size
+                        // (DESIGN.md §2.2/§8.5);44px tap target (§11), glow only
+                        // at xl (§4.6 keeps glow on the primary action).
+                        "grid size-11 shrink-0 place-items-center rounded-xl transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                        recording
+                          ? "bg-danger/20 text-danger hover:bg-danger/25"
+                          : "bg-primary text-on-primary hover:bg-primary-hover xl:shadow-glow-primary",
+                      )}
+                    >
+                      {transcribing ? (
+                        <Spinner />
+                      ) : recording ? (
+                        <Square className="size-4" aria-hidden />
+                      ) : (
+                        <Mic className="size-4" aria-hidden />
+                      )}
+                    </button>
+                    <Button
+                      type="submit"
+                      size="md"
+                      disabled={!input.trim() || sending || recording || transcribing}
+                      loading={sending}
+                      icon={<Send className="size-4" aria-hidden />}
+                      aria-label="Kirim pesan"
+                    >
+                      <span className="hidden sm:inline">Kirim</span>
+                    </Button>
+                  </InputGroupAddon>
+                </InputGroup>
               </form>
-              <p className="text-center text-[11px] text-muted-dim">
+              <p className="text-center text-xs text-muted-dim">
                 AI tidak pernah menulis data keuangan langsung. Setiap transaksi divalidasi server sebelum disimpan.
               </p>
             </div>
@@ -478,7 +504,7 @@ function Welcome({ onPick }: { onPick: (text: string) => void }) {
             key={suggestion}
             type="button"
             onClick={() => onPick(suggestion)}
-            className="rounded-full border border-line bg-surface-low px-3 py-2 text-xs text-muted transition-colors hover:border-primary/40 hover:text-foreground"
+            className="rounded-full border border-line bg-surface-low px-3.5 py-2.5 text-sm text-muted transition-colors hover:border-primary/40 hover:text-foreground"
           >
             {suggestion}
           </button>
@@ -501,50 +527,54 @@ function MessageBubble({
 }) {
   const user = message.role === "user";
   return (
-    <div className={cn("flex w-full items-start gap-2", user ? "justify-end" : "justify-start")}>
-      {!user ? (
-        <span
-          aria-hidden
-          className="hidden size-8 shrink-0 place-items-center rounded-full bg-ai/10 text-ai ring-1 ring-ai/20 xl:grid"
-        >
-          <MessagesSquare className="size-4" />
-        </span>
-      ) : null}
-      <div className={cn("w-full max-w-[92%] sm:max-w-[85%]", user && "w-auto")}>
+    // Struktur AI Elements (Message + Bubble): baris pesan dengan avatar dan
+    // konten; align="end" membalik baris untuk pesan pengguna.
+    <Message align={user ? "end" : "start"}>
+      <MessageAvatar
+        className={cn(
+          "hidden size-8 self-start xl:grid",
+          user
+            ? "bg-primary text-on-primary"
+            : "bg-ai/10 text-ai ring-1 ring-ai/20",
+        )}
+      >
         {user ? (
-          <div className="rounded-2xl rounded-br-sm bg-primary px-3.5 py-2.5 text-sm text-on-primary">
-            {message.content}
-          </div>
+          <UserRound className="size-4" aria-hidden />
         ) : (
-          <div>
+          <MessagesSquare className="size-4" aria-hidden />
+        )}
+      </MessageAvatar>
+      <MessageContent className="max-w-[92%] sm:max-w-[85%]">
+        {user ? (
+          <Bubble align="end" variant="default" className="max-w-full">
+            <BubbleContent className="rounded-2xl rounded-br-sm px-3.5 py-2.5 leading-6">
+              {message.content}
+            </BubbleContent>
+          </Bubble>
+        ) : (
+          <>
             {message.content ? (
               // w-fit: bubble memeluk isi dan "tumbuh" mengikuti kata yang muncul
               // saat streaming (design-refs/motion-streaming-reply.html).
-              <div className="mb-1 w-fit max-w-full rounded-2xl rounded-tl-sm border border-line bg-surface-low px-3.5 py-2.5 text-sm leading-6 text-foreground">
-                {streaming ? (
-                  <StreamingReply text={message.content} onDone={onStreamDone} />
-                ) : (
-                  message.content
-                )}
-              </div>
+              <Bubble align="start" variant="muted" className="max-w-full">
+                <BubbleContent className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 leading-6">
+                  {streaming ? (
+                    <StreamingReply text={message.content} onDone={onStreamDone} />
+                  ) : (
+                    message.content
+                  )}
+                </BubbleContent>
+              </Bubble>
             ) : null}
             {message.card ? (
               <AssistantCardView card={message.card} onApproved={onApproved} />
             ) : null}
-          </div>
+          </>
         )}
-        <p className={cn("mt-1 text-[10px] text-muted-dim", user ? "text-right" : "text-left")}>
+        <p className={cn("text-xs text-muted-dim", user && "text-right")}>
           {relativeTime(message.createdAt)}
         </p>
-      </div>
-      {user ? (
-        <span
-          aria-hidden
-          className="hidden size-8 shrink-0 place-items-center rounded-full bg-primary text-on-primary xl:grid"
-        >
-          <UserRound className="size-4" />
-        </span>
-      ) : null}
-    </div>
+      </MessageContent>
+    </Message>
   );
 }

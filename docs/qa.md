@@ -499,11 +499,137 @@ E2E_WEB_URL=http://localhost:3000 npm run test:e2e
 
 **Catatan:**
 - Build Docker sempat gagal dua kali karena `fonts.gstatic.com` timeout dari jaringan host (bukan kode); retry setelah jaringan pulih → sukses.
-- Temuan sampingan di luar lingkup perbaikan ini: React **hydration warning #418** muncul saat load di **semua** halaman (`/`, `/assistant`, `/reports`) — pra-ada (pre-existing), tidak mempengaruhi hasil e2e; perlu investigasi terpisah.
+- Temuan sampingan yang kini **sudah diperbaiki di §22**: React hydration warning #418 muncul saat load di semua halaman — akar masalahnya guard `hasToken()` yang dibaca saat render (server vs klien berbeda).
 
 **Reproduksi:**
 ```bash
 WEB_URL=http://localhost:3000 node tests/diagnose-scroller.mjs   # pageOverflows false ×2
 WEB_URL=http://localhost:3000 node tests/verify-scroller.mjs     # PASS
+E2E_WEB_URL=http://localhost:3000 npm run test:e2e
+```
+
+## 22. Perbaikan peringatan hydration #418 di semua halaman (23 November 2026)
+
+Ditemukan saat investigasi §21: React **#418** ("server rendered HTML didn't match the client") muncul saat load `/`, `/assistant`, `/reports` — dan halaman lain. React menandai pohon untuk diregenerasi di klien (tidak rusak, tapi membuang hasil render server & memunculkan error di konsol).
+
+| Keputusan | Detail |
+|---|---|
+| Akar masalah | Guard `if (!hasToken())` di **5 view** (home, assistant, history, budget, reports) dibaca saat render. Di server `localStorage` tidak ada → `false` → render cabang "Belum ada token akses" (`<header>` PageHeader); render pertama klien → `true` → `<section>` panel selamat datang → node pertama yang berbeda = awal kecocokan gagal |
+| Perbaikan | **`useHasToken()`** di `lib/session.ts`: `useSyncExternalStore(subscribe, hasToken, serverNoToken)` — server-snapshot selalu `false`, sehingga render server **dan** render-hydration klien selalu identik; nilai asli datang sebagai *store update* tepat setelah hydration. Ini persis pola `useToken()` yang sudah dipakai kodebase ini (komentarnya: "server and client can disagree without a hydration mismatch") |
+| Kenapa aman | Guard di kelima view berada **sebelum** semua return awal dan **sesudah** semua hook komponen → jumlah hook stabil saat cabang berganti. Navigasi SPA (tanpa server) membaca nilai asli sejak render pertama → identik dengan perilaku lama, tanpa flash tambahan |
+| Cakupan | Import di 5 view berpindah `hasToken` → `useHasToken`; `hasToken` tetap dipakai di dalam hook sendiri (tak ada export mati) |
+
+**Verifikasi:**
+
+| Pemeriksaan | Hasil |
+|---|---|
+| `tsc` · `eslint` (7 file tersentuh) | **0 · 0** |
+| `node tests/verify-hydration.mjs` (dev `:3001`) | **HYDRATION CLEAN** — `/`, `/assistant`, `/reports`, `/history`, `/budget`, `/profile`, `/savings` semuanya **OK** (0 pageerror) |
+| `node tests/verify-hydration.mjs` (produksi `:3000`) | **HYDRATION CLEAN** |
+| `npm run test:e2e` | **50/50 PASS** |
+
+**Reproduksi:**
+```bash
+WEB_URL=http://localhost:3000 node tests/verify-hydration.mjs   # HYDRATION CLEAN
+```
+
+## 23. Perbaikan tampilan sidebar desktop dengan shadcn + antislop (23 November 2026)
+
+**Mode antislop: DURING** (pilihan pengguna di sesi ini). **Design Read:** sidebar aplikasi finansial ter-login untuk pengguna individu Indonesia, bahasa Dark-First Frosted Velvet aksen emerald, dial **ENERGY 1 / RHYTHM 2 / MOTION 1**.
+
+**Temuan sebelumnya** (pola *Scaffold Sidebar* dari antislop-ui): enam destinasi sebagai satu daftar rata tanpa pengelompokan; di mode rail (md) nama baris hanya lewat `title` native (tidak muncul saat keyboard focus); baris 40px (di bawah target sentuh 44px); ada sisa artefak `{" "}`.
+
+| Keputusan | Detail |
+|---|---|
+| Pengelompokan | `lib/navigation.ts` kini mengekspor **`desktopNavGroups`**: "Tinjauan" (Beranda, Riwayat, Laporan), "Kelola" (Budget, Tabungan), "Akun" (Profil & Pengaturan). Label pendek, normal-case, ikut DESIGN.md §14 (larangan uppercase micro-label). Hairline `border-t` memisahkan kluster, tetap terlihat di rail tempat label disembunyikan |
+| shadcn Tooltip | `components/ui/tooltip.tsx` dari registry base-nova (`npx shadcn add tooltip`): memakai **`@base-ui/react` yang sudah ada di package.json** (nol dependensi baru). Dipasang **hanya saat rail** (`useIsDesktop(1024)` = kolom label tersembunyi), `side="right"`, `TooltipProvider delay={200}`: nama tujuan muncul saat **hover dan keyboard focus** |
+| Aksesibilitas | Setiap link nav + CTA punya `aria-label` permanen (nama tetap ada walau teks `display:none`); baris `py-3` = **44px** (target sentuh, R-03); penanda aktif tetap **3 sinyal** (bg + stripe `bg-primary` + font-semibold/ikon tebal), bukan warna saja |
+| Konsistensi | CTA "Tanya Asisten" tetap **satu-satunya glow** (`shadow-glow-primary`, DESIGN.md §4.6 menyebut sidebar CTA), kini dipisah `border-t`; nav dapat `scrollbar-thin`; artefak `{" "}` dihapus; tiap keputusan besar diberi komentar alasan (R-31) |
+| Kenapa bukan komponen `sidebar` shadcn penuh | Komponen itu membawa `SidebarProvider`, state collapse, dan sheet mobile yang akan mengubah layout serta selektor e2e yang sudah bekerja; permintaan = perbaikan tampilan, jadi dipakai primitif shadcn yang relevan (tooltip) + Tailwind di atas token DESIGN.md |
+
+**Verifikasi:**
+
+| Pemeriksaan | Hasil |
+|---|---|
+| `tsc` · `eslint` (sidebar, navigation, tooltip) | **0 · 0** |
+| `node tests/verify-sidebar.mjs` (dev `:3001` & produksi `:3000`) | **PASS** — hover rail membuka tooltip "Budget" (visible), **focus keyboard** juga membuka, penanda aktif benar, 3 grup tampil di 1600px (lebar sidebar 248px), dan **tidak ada** tooltip saat mode berlabel |
+| Click-through manual (browser in-app, rail 856px) | 6 link + CTA → semua tujuan benar, `aria-current` mengikuti halaman, **0 error konsol**. Catatan: klik mentah di dev terhalang overlay `NEXTJS-PORTAL` (dev tools, hanya mode dev); via dispatch JS CTA → `/assistant` ✓; `/assistant` tidak merender sidebar (by design) |
+| `verify-hydration` (7 halaman) | **CLEAN** — sidebar baru tidak menambah mismatch hydration |
+| `verify-scroller` · `verify-streaming` | **PASS** · **PASS** |
+| `npm run test:e2e` (produksi) | **50/50 PASS** |
+| Screenshot | `tests/.artifacts/sidebar-{labeled,rail,rail-tooltip}.png` (di-`gitignore`) |
+
+**Reproduksi:**
+```bash
+WEB_URL=http://localhost:3000 node tests/verify-sidebar.mjs    # SIDEBAR PASS
+E2E_WEB_URL=http://localhost:3000 npm run test:e2e
+```
+
+## 24. Perbaikan tampilan layar asisten AI (23 November 2026)
+
+Lanjutan pekerjaan sidebar (§23) dengan mode antislop **DURING** dan `Color_Design.md` (Luminescent Carbon Fintech) sebagai rujukan warna. Token `colors:` di Color_Design.md memang sudah menjadi `globals.css` FISCA; yang dipakai dari dokumen itu adalah spesifikasi komponennya (fokus input sian, badge AI ber-border, status badge pill), sementara bagian prosa "Carbon-Aware Glassmorphism" **tidak** diikuti karena bertabrakan dengan DESIGN.md §3.3 (larangan istilah karbon), §4.5 (blur maks2 permukaan), dan §4.6 (glow maks1 jenis) yang menang menurut hierarki sumber.
+
+**Design Read:** *layar chat AI penuh untuk pengguna finansial individu Indonesia, Dark Frosted Velvet, dial ENERGY 1 / RHYTHM 2 / MOTION 1.*
+
+| Temuan audit | Perbaikan | Alasan |
+|---|---|---|
+| Fokus input memakai emerald (`focus-within:border-primary/50`) | → **`focus-within:border-line-focus`** (`rgba(6,182,212,0.8)`) | DESIGN.md §4.1 menetapkan `border-focus` sian untuk fokus keyboard/input; Color_Design.md "Form Inputs" juga menyebut transisi border sian tersebut. Kedua dokumen sepakat |
+| Label chart `TREN MASUK VS KELUAR` uppercase + tracking di11px | → **"Tren masuk vs keluar"** sentence case, `text-xs` | DESIGN.md §4.2 melarang micro-label uppercase untuk frasa Indonesia; judul saudara di kartu juga sentence case (konsistensi) |
+| Timestamp bubble `text-[10px]`, waktu daftar `text-[11px]`, disclaimer `text-[11px]` | → **`text-xs`** semua | DESIGN.md §11: jangan pakai teks metadata kecil untuk tanggal |
+| Mic di mobile abu-abu (paling redup) + target36px | → **emerald penuh `size-11` (44px)** di semua ukuran, `disabled:opacity-50`, glow tetap hanya xl | DESIGN.md §2.2/§8.5 "voice paling menonjol"; §11 target sentuh44px; §4.6 glow tetap aksi primer |
+| Kirim `size-sm` (36px) | → **`size-md` (44px)** | §11 target sentuh untuk aksi penting |
+| Percakapan aktif hanya dibedakan warna | → judul aktif **`font-semibold`** | DESIGN.md §2.7: status tidak boleh hanya warna |
+| Chip saran `text-xs` py-1.5 (32px) | → `text-sm` py-2.5 (±42px) | Kenyamanan ketuk; chip sekunder, aksi penting sudah44px |
+| Badge asisten `rounded-sm` tanpa border | → **pill `rounded-full`** + `ring-1 ring-ai/25` untuk tone `ai` | Color_Design.md "Status Badges": pill `rounded-full`; "AI Syncing": border sian25% |
+| Tombol primer disabled masih ber-glow | → **`disabled:shadow-none`** di varian `primary` `Button` | Glow menandai aksi primer aktif (§4.6); glow pada kontrol mati menyesatkan (R-39) |
+
+**Verifikasi:**
+
+| Pemeriksaan | Hasil |
+|---|---|
+| `tsc` ·`eslint` (5 file tersentuh) | **0 ·0** |
+| `node tests/verify-assistant-card.mjs` (dev & produksi) | **PASS** — label legend cocok (`trendLegend:true`), CTA `/reports`, KPI3, stack5 (FAIL pertama di produksi = cold-start container, PASS di run ulang) |
+| `verify-scroller` · `verify-streaming` · `verify-hydration` · `verify-sidebar` | **PASS · PASS · CLEAN · PASS** |
+| `npm run test:e2e` | **50/50 PASS** |
+| Pengukuran target ketuk (Playwright,390px) | mic **44×44**, kirim **48×44**, chip ±42 (sekunder), border fokus sian terlihat di screenshot |
+| Screenshot | `tests/.artifacts/assistant-after-{desktop,welcome,mobile,focus}.png` via `tests/shot-assistant.mjs` |
+
+**Reproduksi:**
+```bash
+WEB_URL=http://localhost:3000 node tests/verify-assistant-card.mjs   # PASS
+node tests/shot-assistant.mjs                                        # screenshot after
+E2E_WEB_URL=http://localhost:3000 npm run test:e2e
+```
+
+## 25. Adopsi shadcn AI Elements (Chat) di layar asisten (23 November 2026)
+
+Chat pada AI Elements **bukan satu item registry** melainkan komposisi: *Message Scroller* (sudah ada) + **Message** + **Bubble** + **Input Group**. Perintah resminya `shadcn add message-scroller message bubble input-group`; item `chat` sendiri tidak ada di registry (dokumennya hanya pola).
+
+| Keputusan | Detail |
+|---|---|
+| Terpasang | `components/ui/message.tsx`, `bubble.tsx`, `input-group.tsx` (+ dependensi `input.tsx`, `textarea.tsx`) lewat CLI `npx shadcn add` |
+| Varian Bubble dipetakan ke token FISCA | `default` → `bg-primary text-on-primary` (bubble pengguna), `muted` → `bg-surface-low text-foreground border-line` (bubble asisten); `secondary` → `bg-surface-high`. Nama tema shadcn (`--muted`, `--primary-foreground`, `--destructive`) tidak ada di FISCA, mengikuti pola `button.tsx` yang sudah lebih dulu memakai varian FISCA (alasan: konsistensi token, R-31) |
+| `MessageBubble` dibangun ulang | `Message` (align start/end, baris membalik untuk pengguna) + `MessageAvatar` (avatar sian asisten / emerald pengguna) + `MessageContent` + `Bubble`/`BubbleContent` — geometri bubble (rounded-2xl + sudut siku, px-3.5 py-2.5 leading-6, max-w) lewat `className` yang di-merge komponen |
+| Bar input → `InputGroup` | `InputGroup` + `InputGroupInput` + `InputGroupAddon` (mic mentah + `Button` Kirim). `role="group"` bawaan; **label e2e tidak berubah** (`Tulis pesan`, `Rekam suara`, `Kirim pesan`) |
+| Perbaikan perilaku `has-disabled` | `InputGroup` bawaan meredupkan **seluruh grup** saat ada kontrol disabled (`has-disabled:opacity-50`) → mic ikut redup walau masih bisa dipakai (voice-first §2.2). Di-override `has-disabled:opacity-100`; tiap kontrol tetap punya state disabled sendiri |
+| CLI overwrite | Prompt overwrite `button.tsx` dijawab **N** — varian FISCA (`primary/secondary/ghost/danger` + `disabled:shadow-none` dari §24) dipertahankan; `input-group` tetap terpasang |
+| Tidak diadopsi | Komponen `sidebar` shadcn penuh (alasan §23); registry `chat` tidak ada (komposisi) |
+
+**Verifikasi:**
+
+| Pemeriksaan | Hasil |
+|---|---|
+| `tsc` ·`eslint` (assistant-view +5 file ui baru) | **0 ·0** |
+| `node tests/verify-bubble-pair.mjs` (dev & produksi) | **AI ELEMENTS BUBBLE PASS** — bubble pengguna `rgb(78,222,163)`/teks `rgb(0,56,36)` radius `16/16/4`, asisten `rgb(24,28,36)`/`rgb(223,226,238)` radius `4/16/16`, border garis, avatar cocok; struktur `data-slot=message`/`bubble` aktif |
+| `verify-assistant-card` · `verify-scroller` · `verify-streaming` | **PASS** ×3 |
+| `verify-hydration` · `verify-sidebar` | **CLEAN** · **PASS** |
+| `npm run test:e2e` | **50/50 PASS** |
+| Catatan operasional | Satu run sempat terganggu **restart total stack Docker di tengah jalan** (bukan kode); semua pemeriksaan diulang setelah stack sehat dan lulus semua |
+| Screenshot | `tests/.artifacts/assistant-ai-{desktop,mobile,welcome,focus,userpair}.png` |
+
+**Reproduksi:**
+```bash
+WEB_URL=http://localhost:3000 node tests/verify-bubble-pair.mjs    # AI ELEMENTS BUBBLE PASS
+node tests/shot-userpair.mjs                                       # pasangan bubble pengguna+asisten
 E2E_WEB_URL=http://localhost:3000 npm run test:e2e
 ```

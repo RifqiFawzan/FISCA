@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, ChartNoAxesColumn } from "lucide-react";
 
-import { api, hasToken } from "@/lib/api";
+import { api, useHasToken } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import {
   formatCompact,
@@ -42,7 +42,9 @@ export function ReportsView() {
     `reports:${period}`,
   );
 
-  if (!hasToken()) {
+  const authed = useHasToken();
+
+  if (!authed) {
     return (
       <div className="space-y-6">
         <PageHeader title="Laporan" />

@@ -14,7 +14,7 @@
 import { getToken } from "@/lib/session";
 import type { components } from "./api.gen";
 
-export { getToken, setToken, hasToken } from "@/lib/session";
+export { getToken, setToken, hasToken, useHasToken } from "@/lib/session";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ??

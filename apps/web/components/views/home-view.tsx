@@ -13,7 +13,7 @@ import {
   Wallet,
 } from "lucide-react";
 
-import { api, hasToken } from "@/lib/api";
+import { api, useHasToken } from "@/lib/api";
 import type { CategorySpend, CreateTransactionPayload, Warning } from "@/lib/api";
 import { useAction, useApi } from "@/lib/use-api";
 import { useIsDesktop } from "@/lib/use-desktop";
@@ -69,7 +69,9 @@ export function HomeView() {
   const totalSaved = goalList.reduce((sum, goal) => sum + goal.saved, 0);
   const totalTarget = goalList.reduce((sum, goal) => sum + goal.targetAmount, 0);
 
-  if (!hasToken()) {
+  const authed = useHasToken();
+
+  if (!authed) {
     return (
       <div className="space-y-6">
         <PageHeader title="Beranda" />

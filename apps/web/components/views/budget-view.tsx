@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, Plus, ShieldCheck, X } from "lucide-react";
 
-import { api, hasToken } from "@/lib/api";
+import { api, useHasToken } from "@/lib/api";
 import type { Budget, BudgetProposal } from "@/lib/api";
 import { useAction, useApi } from "@/lib/use-api";
 import { formatDayMonthYear, formatIDR, parseAmountInput } from "@/lib/format";
@@ -32,7 +32,9 @@ export function BudgetView() {
   );
   const action = useAction();
 
-  if (!hasToken()) {
+  const authed = useHasToken();
+
+  if (!authed) {
     return (
       <div className="space-y-6">
         <PageHeader title="Budget" />

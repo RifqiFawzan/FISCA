@@ -84,6 +84,22 @@ export function useToken(): string {
   return useSyncExternalStore(subscribe, getToken, () => "");
 }
 
+/**
+ * Whether a session token exists — safe to use as a render guard. The server
+ * snapshot is always `false`, so the server render and the client's first
+ * (hydration) render always agree; the real value then arrives as a store
+ * update right after hydration, the same mechanism as `useToken`. This is
+ * what lets the views keep an `if (!authed)` guard without regenerating the
+ * tree on every hydration.
+ */
+function serverNoToken(): boolean {
+  return false;
+}
+
+export function useHasToken(): boolean {
+  return useSyncExternalStore(subscribe, hasToken, serverNoToken);
+}
+
 /** Clears local credentials. Panggilan ke server dilakukan oleh signOut. */
 export function clearSession() {
   if (typeof window === "undefined") return;
