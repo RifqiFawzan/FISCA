@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { MessagesSquare, Mic, Plus, Send, Square, Trash2, UserRound, X } from "lucide-react";
 
@@ -24,6 +24,7 @@ import { Alert, Spinner } from "@/components/ui/feedback";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { AssistantCardView } from "@/components/assistant/assistant-card";
+import { RichReply } from "@/components/assistant/rich-reply";
 
 const SUGGESTIONS = [
   "catat makan siang 25rb",
@@ -67,7 +68,7 @@ export function AssistantView() {
       });
       setActiveId(reply.conversationId);
       // Streaming hanya diputar sekali saat pesan tiba; streamId dibersihkan
-      // oleh StreamingReply sendiri setelah kata terakhir selesai animasi.
+      // oleh RichReply sendiri setelah kata terakhir selesai animasi.
       setStreamId(reply.messageId);
       messages.reload();
       conversations.reload();
@@ -433,62 +434,6 @@ function AssistantHeader({
   );
 }
 
-/**
- * Menyajikan balasan yang SUDAH lengkap dari server kata demi kata (pola desain
- * "Streaming Reply" — design-refs/motion-streaming-reply.html): tiap kata muncul
- * naik + tajam selagi bubble memeluk isi yang bertambah. Konten tidak diubah,
- * hanya penyajiannya; prefers-reduced-motion menampilkan teks penuh seketika.
- */
-function StreamingReply({ text, onDone }: { text: string; onDone?: () => void }) {
-  const words = text.split(" ");
-  // Reduced motion: tampil penuh sejak awal (initializer, bukan setState di effect).
-  const [shown, setShown] = useState(() =>
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ? words.length
-      : 0,
-  );
-  // Sengaja lewat ref (di-update di effect, bukan saat render): identitas
-  // onDone berubah tiap render; yang penting callback terbaru tetap dipanggil
-  // tepat setelah kata terakhir muncul.
-  const doneRef = useRef(onDone);
-  useEffect(() => {
-    doneRef.current = onDone;
-  });
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      doneRef.current?.();
-      return;
-    }
-    let i = 0;
-    const id = window.setInterval(() => {
-      i += 1;
-      setShown(i);
-      if (i >= words.length) {
-        window.clearInterval(id);
-        // Tunggu animasi kata terakhir (0,4s) sebelum induk mengubah pesan
-        // kembali menjadi teks biasa; swap-nya identik jadi tak terlihat.
-        window.setTimeout(() => doneRef.current?.(), 600);
-      }
-    }, 70);
-    return () => window.clearInterval(id);
-  }, [words.length]);
-
-  return (
-    <>
-      {words.map((word, index) => (
-        <span
-          key={index}
-          className={index < shown ? "stream-word" : "stream-word-pending"}
-        >
-          {word}{" "}
-        </span>
-      ))}
-    </>
-  );
-}
-
 function Welcome({ onPick }: { onPick: (text: string) => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center py-12 text-center">
@@ -559,11 +504,7 @@ function MessageBubble({
               // saat streaming (design-refs/motion-streaming-reply.html).
               <Bubble align="start" variant="muted" className="max-w-full">
                 <BubbleContent className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 leading-6">
-                  {streaming ? (
-                    <StreamingReply text={message.content} onDone={onStreamDone} />
-                  ) : (
-                    message.content
-                  )}
+                  <RichReply text={message.content} streaming={streaming} onDone={onStreamDone} />
                 </BubbleContent>
               </Bubble>
             ) : null}

@@ -773,3 +773,27 @@ npx playwright install webkit                                # sekali saja
 # harus memuat periode hari ini + angka backend, bukan7d/bulan
 curl -H "Authorization: Bearer $TOKEN" "http://localhost:8080/api/v1/transactions/search?q=pengeluaran%20hari%20ini"
 ```
+
+## 30. Jawaban saran terstruktur + kartu metrik (24 November 2026)
+
+**Gejala (contoh user):** balasan "Berikan saran" adalah dinding teks satu paragraf dengan sintaks markdown mentah (`**tebal**`, nomor1.2.3 menyatu) — tidak rapi, tanpa visual.
+
+| Lapis | Keputusan |
+|---|---|
+| Prompt (`ai.go`) | Format wajib kind=consultation:1 kalimat pembuka + **maksimal5 poin berawalan "- "** (satu baris per poin), `**tebal**` hanya istilah kunci, angka utuh, paragraf dipisah baris kosong, satu pertanyaan lanjutan, **tanpa nomor1.2.3 / tanda hubung panjang / emoji**; ditambah field **`withCard`** di kontrak intent (true bila saran memakai angka pengguna) |
+| `Ai_intent.md` §5 | Aturan format yang sama terdokumentasi |
+| Server (`assistant.go`) | `consultation && withCard` → melampirkan **kartu `financial_summary`** (tiles Masuk/Keluar/Bersih + chart tren + bar kategori) — metrik & diagram dari backend, bukan angka model. Kontrak API tak berubah (`card` sudah opsional di `AssistantReply`) |
+| Renderer (`components/assistant/rich-reply.tsx`, baru) | **`RichReply`**: parser markdown-AMAN subset kecil (paragraf, daftar "- "/"1. ", `**tebal**`) menjadi node React (tanpa `dangerouslySetInnerHTML` → tanpa injeksi HTML). Mode **streaming** mengungkap kata demi kata DI DALAM strukturnya (daftar/tebal langsung rapi, sintaks tak pernah tampil mentah); setelah `onDone` menukar ke mode **statis** tanpa span animasi (riwayat tidak ikut teranimasi ulang); `prefers-reduced-motion` → penuh seketika |
+| Penggantian | `StreamingReply` lama dihapus; `MessageBubble` kini selalu memakai `RichReply` |
+
+**Verifikasi:**
+- API: `"Berikan saran untuk keuangan saya bulan ini"` →1 pembuka + **5 poin "- "** ber-`**tebal**` +1 pertanyaan lanjut, semua angka backend, **kartu `financial_summary` + trend2 titik** terlampir ✓
+- `node tests/verify-advice.mjs` (baru) → **ADVICE STRUCTURE PASS**: bubble berisi `li` nyata (5), `strong` (3), **nol `**` mentah**, kartu + chart `role=img` ada; screenshot `tests/.artifacts/advice-structured.png`
+- `tsc`·`eslint` **0·0** · `go build`·`go test ./...` **ok**
+- Regresi penuh: streaming · card · bubble · scroller · hydration · sidebar · iphone · audit0/0 · profile-rows **PASS** · e2e **50/50**
+
+**Reproduksi:**
+```bash
+WEB_URL=http://localhost:3000 node tests/verify-advice.mjs   # ADVICE STRUCTURE PASS
+E2E_WEB_URL=http://localhost:3000 npm run test:e2e
+```

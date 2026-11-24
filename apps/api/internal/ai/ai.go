@@ -33,6 +33,7 @@ type Intent struct {
 	Period       string  `json:"period"`
 	Query        string  `json:"query"`
 	Answer       string  `json:"answer"` // jawaban natural untuk kind=consultation
+	WithCard     bool    `json:"withCard"` // true: saran berbasis angka -> kartu ringkasan ikut tampil
 	Rationale    string  `json:"rationale"`
 	Confidence   float64 `json:"confidence"`
 }
@@ -146,6 +147,7 @@ func (c *Client) ExtractIntent(ctx context.Context, text string, cctx Context) (
  "period":"today|this_month|last_month|7d|30d|90d|this_year|YYYY-MM|YYYY-MM-DD|",
  "query":"",
  "answer":"",
+ "withCard":true|false,
  "rationale":"",
  "confidence":0.0}
 
@@ -160,6 +162,12 @@ Klasifikasi pesan (kind):
 - proposal = pengguna mengusulkan perubahan anggaran (persetujuan terjadi di aplikasi, bukan olehmu).
 - consultation = saran, pendapat, analisis, rencana pembelian, tujuan tabungan, konsep keuangan umum, atau permintaan di luar cakupan keuangan -> isi "answer".
 - unknown = tidak yakin.
+
+Format jawaban kind=consultation (saran/analisis):
+- Satu kalimat pembuka, lalu maksimal5 poin; tiap poin satu baris diawali "- ".
+- **Tebal** hanya untuk istilah kunci; angka ditulis utuh (Rp1.234.567). JANGAN pakai nomor1.2.3, tanda hubung panjang, atau emoji.
+- Paragraf dipisah satu baris kosong; akhiri dengan SATU pertanyaan lanjutan.
+- withCard: true bila saran memakai angka keuangan pengguna (kartu ringkasan tampil di bawah jawaban); false untuk pertanyaan konsep umum.
 
 DILARANG create_transaction bila pengguna: bertanya tentang pengeluaran, meminta pendapat atau analisis, membicarakan rencana pembelian, membuat pengandaian, atau menanyakan kewajaran suatu biaya.
 Contoh "Apakah makan4 kali dengan total80 ribu boros?" -> consultation, BUKAN pencatatan. Contoh "Tadi saya makan siang25 ribu" -> create_transaction.

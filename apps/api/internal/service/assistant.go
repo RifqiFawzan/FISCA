@@ -425,6 +425,20 @@ func (s *Service) routeIntent(
 		// Jawaban grounding-nya dibangun model dari konteks finansial backend;
 		// kosong berarti model tidak yakin — jatuh ke jawaban kapabilitas.
 		if answer := strings.TrimSpace(intent.Answer); answer != "" {
+			// Saran berbasis angka (withCard) ditemani kartu ringkasan:
+			// metrik + chart dari backend, bukan angka karangan model.
+			if intent.WithCard {
+				if dashboard, err := s.Dashboard(ctx, q, userID, periodRaw); err == nil {
+					return answer, Card{
+						Type:       "financial_summary",
+						Title:      "Ringkasan " + dashboard.Period.Label,
+						Summary:    &dashboard.Summary,
+						Period:     &dashboard.Period,
+						Categories: dashboard.TopCategories,
+						Trend:      dashboard.MonthlyTrend,
+					}, nil
+				}
+			}
 			return answer, Card{}, nil
 		}
 		fallthrough
