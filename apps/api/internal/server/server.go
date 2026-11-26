@@ -3,7 +3,10 @@
 package server
 
 import (
+	"fmt"
+	"log/slog"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -37,7 +40,14 @@ func New(opts Options) *gin.Engine {
 	router.Use(
 		middleware.RequestID(),
 		middleware.StructuredLogger(),
-		gin.CustomRecovery(func(c *gin.Context, _ any) {
+		gin.CustomRecovery(func(c *gin.Context, recovered any) {
+			// Tanpa baris ini panic "silent": hanya status500 yang tercatat,
+			// tanpa nilai panic maupun stack, sehingga500 mustahil ditelusuri.
+			slog.Error("panic_recovered",
+				"requestId", c.GetString(httpx.RequestIDKey),
+				"error", fmt.Sprint(recovered),
+				"stack", string(debug.Stack()),
+			)
 			httpx.Fail(c, http.StatusInternalServerError, httpx.CodeInternal, "internal server error", nil)
 		}),
 		middleware.CORS(opts.Config.CORSOrigins),

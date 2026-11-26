@@ -825,3 +825,49 @@ WEB_URL=http://localhost:3000 node tests/audit-mobile.mjs   # MOBILE AUDIT PASS
 ```
 
 **Tambahan (sesi sama):** alert sukses "Setujui usulan" yang sejak awal tidak pernah tampil (bug lama: `approve.run` tanpa argumen pesan) ikut diperbaiki: `success` kini terisi, alert `role=status` tampil, dan tombol nonaktif setelah persetujuan. Terverifikasi live: "ubah budget jadi5jt" -> Setujui -> "Usulan disetujui dan sudah berlaku."
+
+##32. Context memory satu sesi: riwayat4-6 pesan terakhir (26 November2026)
+
+**Pertanyaan user:** apakah context window/memory bisa dibuat manual dalam1 sesi percakapan? Jawaban: bisa; sebelumnya setiap panggilan model hanya berisi system prompt + pesan saat ini (riwayat disimpan di `assistant_messages` tapi tidak pernah dikirim).
+
+| Lapis | Keputusan |
+|---|---|
+| `ai.go` | `Context.History []HistoryEntry` (role + teks) baru; `buildMessages` menyusun `[system] + riwayat (terlama -> terbaru) + pesan kini`; tiap entri dipangkas **400 rune** agar context window provider tak meledak; aturan prompt: riwayat HANYA untuk memahami rujukan ("yang tadi"), **angka tetap dari blok Konteks keuangan** |
+| `assistant.go` | `threadHistory`: ambil `ListAssistantMessages` (ORDER BY created_at ASC), **buang baris terakhir** (pesan berjalan yang baru disisipkan HandleMessage), ambil **6 entri terakhir**, gagal query -> kosong (pesan tetap jalan). `interpret` kini menerima `conversationID` |
+| `Ai_intent.md` §2 | prinsip ke-9: ingat beberapa pesan terakhir hanya untuk rujukan; angka tetap dari backend |
+
+**Verifikasi (26 November2026):**
+- `go build`/`vet`/`test ./...` **ok**
+- Live satu percakapan: "berapa pengeluaran bulan ini" (kartu ringkasan) lalu **"apa pertanyaan saya sebelumnya?"** -> balasan: **"Pertanyaan Anda sebelumnya adalah berapa pengeluaran bulan ini. Saya menjawabnya dengan data November2026: pengeluaran Rp5.460.100 ..."** = riwayat terbaca, angka tetap backend
+- Riwayat tanpa AI (heuristic) tidak terpengaruh; entri kosong/pesan sistem diabaikan
+
+**Reproduksi:**
+```bash
+# satu percakapan: "berapa pengeluaran bulan ini" -> "apa pertanyaan saya sebelumnya?"
+# jawaban harus menyebut pertanyaan sebelumnya, bukan jawaban kemampuan generik
+```
+
+##33. Rentang "N hari" + konteks prompt + timeout tes asisten (26 November2026)
+
+**Gejala (contoh user):** "pengeluaran saya2 hari" dijawab **"Periode20-26 November2026"** (jendela7 hari) karena vocabulari periode AI hanya punya `today|7d|30d|90d|...`; "2 hari" tidak ada lalu model menyubstitusi7d.
+
+| Lapis | Keputusan |
+|---|---|
+| `period.Parse` | Kunci **`Nd` generik** (1-365 hari) menggantikan casing keras `7d/30d/90d` (ketiganya tetap lewat jalur sama, arti tak berubah): "2d" =2 hari kalender terakhir termasuk hari ini, label tanggal dari `dayWindowLabel` |
+| `search.go` `detectPeriodPhrase` | Regex `(\d{1,3})\s*hari(\s+lalu)?` -> key "Nd"; **"N hari lalu" sengaja dilewat** (artinya1 hari tertentu, bukan jendela) |
+| Prompt (`ai.go`) + `Ai_intent.md` A6 | Enum periode memuat `Nd (rentang N hari terakhir, contoh2 hari ->2d)`; aturan eksplisit: **"N hari" -> "Nd" sesuai angka, DILARANG mengganti dengan7d/30d/bulan ini** |
+| `clarification.spec.ts` | Dua assertion yang menunggu balasan AI naik dari default10s -> **25s** (server berhak memakai `AI_TIMEOUT_SECONDS=20`); inilah penyebab flake e2e (log membuktikan request200 berdurasi10,25s &10,9s > batas tunggu10s, bukan error server) |
+| `server.go` | `gin.CustomRecovery` kini mencatat **nilai panic + stack** (`panic_recovered`); sebelumnya500 akibat panic totally silent (tak ada satu pun baris log yang memuat sebabnya) |
+
+**Verifikasi (26 November2026):**
+- `go build`/`vet`/`test` (period, service, server) **ok**; test `Parse("2d")` -> jendela2 hari baru
+- Live: `"pengeluaran saya2 hari"` -> **"Periode25-26 November2026"** (tepat2 hari; angka Rp0 jujur, tak ada transaksi di jendela itu) + kartu `financial_summary`
+- Flake e2e terbukti dari log: semua `POST /assistant/messages` **200**, latensi2,0-10,9 detik; yang gagal hanya melewati batas tunggu tes10s
+
+**Reproduksi:**
+```bash
+# POST /assistant/messages {"text":"pengeluaran saya2 hari"} -> card.period.label = "25-26 November2026"
+npx playwright test clarification   # dua assertion kini menunggu25s
+```
+
+**Tambahan:** `playwright.config.ts` kini `timeout:90_000` + `expect.timeout:25_000` (menaikkan batas spesifikasi tadi ke konfigurasi global) karena dua spesifikasi berbeda (clarification, budget) terbukti flaky dengan10s sementara kontrak server mengizinkan20s. Setelah perubahan ini e2e **50/50 PASS** (durasi suite2,5 menit).

@@ -11,8 +11,12 @@ const WEB_URL = process.env.E2E_WEB_URL ?? "http://localhost:3000";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  timeout: 60_000,
-  expect: { timeout: 10_000 },
+  // Balasan asisten melewati pemanggilan AI yang sah memakan waktu sampai
+  // AI_TIMEOUT_SECONDS server (20s per pesan). Batas60s/10s lama lebih ketat
+  // dari kontrak itu sehingga suite flaky saat latensi provider naik (terbukti
+  // dari log: request200 berdurasi10,2-10,9s tetap dinyatakan gagal).
+  timeout: 90_000,
+  expect: { timeout: 25_000 },
   // Test users are shared, so the suite runs serially.
   fullyParallel: false,
   workers: 1,

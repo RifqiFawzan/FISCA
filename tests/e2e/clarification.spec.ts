@@ -13,7 +13,10 @@ test("ambiguous input becomes a draft, the reply completes it", async ({ page })
   // "catat 25rb" has an amount but no description → clarification, no row yet.
   await page.getByLabel("Tulis pesan").fill("catat 25rb");
   await page.getByRole("button", { name: "Kirim pesan" }).click();
-  await expect(page.getByText("Butuh konfirmasi")).toBeVisible();
+  // Balasan melewati pemanggilan AI yang boleh memakan waktu sampai
+  // AI_TIMEOUT_SECONDS server (20s); default expect10s terlalu ketat dan
+  // membuat spesifikasi ini flaky saat latensi provider naik.
+  await expect(page.getByText("Butuh konfirmasi")).toBeVisible({ timeout: 25000 });
 
   const before = await api(token, "GET", "/transactions?limit=50");
   expect((before.body.data.items as unknown[]).length, "draft must not create a row").toBe(0);
@@ -25,7 +28,7 @@ test("ambiguous input becomes a draft, the reply completes it", async ({ page })
   // The reply fills the missing description and saves.
   await page.getByLabel("Tulis pesan").fill("kopi susu uji");
   await page.getByRole("button", { name: "Kirim pesan" }).click();
-  await expect(page.getByText("sudah dicatat").first()).toBeVisible();
+  await expect(page.getByText("sudah dicatat").first()).toBeVisible({ timeout: 25000 });
 
   const after = await api(token, "GET", "/transactions?limit=50");
   const rows = after.body.data.items as Array<{ description: string; amount: number }>;

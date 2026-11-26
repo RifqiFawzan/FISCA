@@ -46,7 +46,8 @@ func CurrentMonth(loc *time.Location, now time.Time) Range {
 //
 //	"" | "this_month" | "bulan_ini" | "current_month"
 //	"last_month" | "bulan_lalu"
-//	"7d" | "30d" | "90d" | "1y"
+//	"Nd" (rolling N days, e.g. "2d" for "2 hari terakhir"; "7d"/"30d"/"90d")
+//	"1y"
 //	"Nm" (rolling N months, e.g. "3m" for "3 bulan terakhir")
 //	"YYYY-MM"
 //	"YYYY-MM-DD" (single day)
@@ -73,15 +74,18 @@ func Parse(raw string, loc *time.Location, now time.Time) (Range, error) {
 		start := time.Date(local.Year()-1, time.January, 1, 0, 0, 0, 0, loc)
 		end := start.AddDate(1, 0, 0)
 		return fullRange(start, end, loc, "Tahun "+fmt.Sprint(local.Year()-1), "tahun"), nil
-	case "7d":
-		return dayRange(local.AddDate(0, 0, -6), local, loc), nil
-	case "30d":
-		return dayRange(local.AddDate(0, 0, -29), local, loc), nil
-	case "90d":
-		return dayRange(local.AddDate(0, 0, -89), local, loc), nil
 	case "1y":
 		start := local.AddDate(-1, 0, 0)
 		return fullRange(start, local, loc, "12 bulan terakhir", "month"), nil
+	}
+
+	// Rolling days: "2d" = the last two days including today. Any N works so
+	// "pengeluaran 2 hari" gets its own window instead of falling back to 7d;
+	// "7d"/"30d"/"90d" keep their historical meaning through this path.
+	if strings.HasSuffix(raw, "d") {
+		if days, err := strconv.Atoi(strings.TrimSuffix(raw, "d")); err == nil && days >= 1 && days <= 365 {
+			return dayRange(local.AddDate(0, 0, -(days - 1)), local, loc), nil
+		}
 	}
 
 	// Rolling months: "3m" = the last three months including today. The window

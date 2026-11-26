@@ -132,7 +132,7 @@ func (s *Service) HandleMessage(ctx context.Context, q *generated.Queries, userI
 		trace = []string{"correction"}
 		reply, card, err = s.applyCorrection(ctx, q, userID, corr, wc)
 	} else {
-		intent, intentTrace := s.interpret(ctx, q, userID, text)
+		intent, intentTrace := s.interpret(ctx, q, userID, conversation.ID, text)
 		trace = intentTrace
 
 		// A reply to an outstanding clarification takes precedence over a
@@ -269,7 +269,7 @@ func (s *Service) financialContext(ctx context.Context, q *generated.Queries, us
 	return b.String()
 }
 
-func (s *Service) interpret(ctx context.Context, q *generated.Queries, userID uuid.UUID, text string) (ai.Intent, []string) {
+func (s *Service) interpret(ctx context.Context, q *generated.Queries, userID uuid.UUID, conversationID pgtype.UUID, text string) (ai.Intent, []string) {
 	trace := []string{"intent"}
 	categories, _ := s.ListCategories(ctx, q, userID, "")
 	accounts, _ := s.ListAccounts(ctx, q, userID)
@@ -294,6 +294,7 @@ func (s *Service) interpret(ctx context.Context, q *generated.Queries, userID uu
 			Accounts:   accountNames,
 			Today:      s.NowUTC(),
 			Financial:  financialContext,
+			History:    s.threadHistory(ctx, q, userID, conversationID, text),
 		})
 		if err == nil {
 			trace = append(trace, "ai")
@@ -305,6 +306,40 @@ func (s *Service) interpret(ctx context.Context, q *generated.Queries, userID uu
 		trace = append(trace, "ai_fallback")
 	}
 	return heuristicIntent(text, s.Now()), trace
+}
+
+// threadHistory is the context memory of one thread: the last few persisted
+// messages so the model can resolve references like "yang tadi". HandleMessage
+// sudah menyisipkan pesan berjalan sebelum interpret, jadi baris terakhir yang
+// isinya sama dengan pesan ini dibuang. Gagal query -> riwayat dikosongkan,
+// pesan tetap diproses. Angka tidak pernah diambil dari riwayat.
+func (s *Service) threadHistory(ctx context.Context, q *generated.Queries, userID uuid.UUID, conversationID pgtype.UUID, current string) []ai.HistoryEntry {
+	rows, err := q.ListAssistantMessages(ctx, generated.ListAssistantMessagesParams{
+		ConversationID: conversationID,
+		UserID:         pgUUIDValue(userID),
+	})
+	if err != nil || len(rows) == 0 {
+		return nil
+	}
+	if last := rows[len(rows)-1]; last.Role == "user" && last.Content != nil &&
+		strings.TrimSpace(*last.Content) == strings.TrimSpace(current) {
+		rows = rows[:len(rows)-1]
+	}
+	const maxEntries = 6
+	if len(rows) > maxEntries {
+		rows = rows[len(rows)-maxEntries:]
+	}
+	history := make([]ai.HistoryEntry, 0, len(rows))
+	for _, row := range rows {
+		if row.Content == nil || strings.TrimSpace(*row.Content) == "" {
+			continue
+		}
+		history = append(history, ai.HistoryEntry{
+			Role: row.Role,
+			Text: strings.TrimSpace(*row.Content),
+		})
+	}
+	return history
 }
 
 func (s *Service) routeIntent(

@@ -272,6 +272,14 @@ func detectPeriodPhrase(text string, year int) (periodKey, label string) {
 			return phrase.period, phrase.label
 		}
 	}
+	// Rentang "N hari" (mis. "pengeluaran 2 hari") -> kunci "Nd" dengan N
+	// sesuai angka, bukan substitusi 7d. "N hari lalu" dilewatan karena
+	// artinya satu hari tertentu, bukan jendela bergulir.
+	if m := daysWindowRe.FindStringSubmatch(lower); m != nil && m[2] == "" {
+		if n, err := strconv.Atoi(m[1]); err == nil && n >= 1 && n <= 365 {
+			return strconv.Itoa(n) + "d", fmt.Sprintf("%d hari terakhir", n)
+		}
+	}
 	// Rolling windows: "3 bulan terakhir", "selama tiga bulan terakhir".
 	if months, windowLabel := parseRollingMonths(lower); months > 0 {
 		return strconv.Itoa(months) + "m", windowLabel
@@ -287,6 +295,10 @@ func detectPeriodPhrase(text string, year int) (periodKey, label string) {
 // rollingMonthsRe captures the count in "N bulan terakhir".
 var rollingMonthsRe = regexp.MustCompile(
 	`(dua\s+belas|sebulan|\d+|satu|dua|tiga|empat|lima|enam|tujuh|delapan|sembilan|sepuluh|sebelas)\s*bulan\s+terakhir`)
+
+// daysWindowRe captures "N hari" with an optional trailing "lalu" so the
+// caller can tell a rolling window ("2 hari") from a past day ("2 hari lalu").
+var daysWindowRe = regexp.MustCompile(`(\d{1,3})\s*hari(\s+lalu)?\b`)
 
 // numberWords maps Indonesian number words used in period phrases.
 var numberWords = map[string]int{
