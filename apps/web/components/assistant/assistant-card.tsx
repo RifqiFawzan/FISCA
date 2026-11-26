@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { Check, Trash2 } from "lucide-react";
 
 import { api } from "@/lib/api";
 import type { AssistantCard, Warning } from "@/lib/api";
@@ -22,14 +22,31 @@ export function AssistantCardView({
   onApproved?: () => void;
 }) {
   const approve = useAction();
+  const remove = useAction();
   const trend = card.trend ?? [];
 
   async function approveProposal() {
     if (!card.proposal) return;
-    const result = await approve.run(() =>
-      api.proposals.approve(card.proposal!.id, card.proposal!.baseVersion),
+    // Argumen kedua wajib: tanpa pesan, useAction tidak mengisi `success`
+    // dan alert persetujuan di bawah tidak pernah tampil.
+    const result = await approve.run(
+      () => api.proposals.approve(card.proposal!.id, card.proposal!.baseVersion),
+      "Usulan disetujui dan sudah berlaku.",
     );
     if (result) onApproved?.();
+  }
+
+  // Penghapusan = void (soft delete) lewat endpoint yang sama dengan halaman
+  // Riwayat; kartu di server tidak diubah, jadi status sukses cukup tinggal
+  // di komponen ini. Tanpa konfirmasi tombol ini, tidak ada baris yang berubah.
+  // Argumen kedua run() wajib: tanpa pesan, useAction tidak pernah mengisi
+  // `success` dan status sukses tak pernah tampil.
+  async function removeTransaction() {
+    if (!card.transaction) return;
+    await remove.run(
+      () => api.transactions.void(card.transaction!.id, "Dihapus lewat asisten"),
+      "Transaksi dibatalkan.",
+    );
   }
 
   return (
@@ -68,6 +85,33 @@ export function AssistantCardView({
               tone={card.summary.net >= 0 ? "text-income" : "text-expense"}
             />
           </div>
+        ) : null}
+
+        {/* Saldo per akun (kartu account_balance): angka dari ledger backend;
+            saldo negatif memakai warna expense supaya defisit langsung terbaca. */}
+        {card.accounts && card.accounts.length > 0 ? (
+          <ul className="space-y-1.5">
+            {card.accounts.map((account) => (
+              <li
+                key={account.id}
+                className="flex items-baseline justify-between gap-3 rounded-lg border border-line bg-surface-low px-3 py-2"
+              >
+                <span className="min-w-0 truncate text-sm">
+                  {account.name}
+                  {account.isDefault ? (
+                    <span className="ml-1.5 text-[11px] text-muted">utama</span>
+                  ) : null}
+                </span>
+                <span
+                  className={`financial shrink-0 text-sm font-semibold ${
+                    account.balance >= 0 ? "text-income" : "text-expense"
+                  }`}
+                >
+                  {formatIDR(account.balance)}
+                </span>
+              </li>
+            ))}
+          </ul>
         ) : null}
 
         {/* Chart tren mini dari monthlyTrend backend (angka dihitung server;
@@ -192,9 +236,33 @@ export function AssistantCardView({
               size="sm"
               icon={<Check className="size-3.5" aria-hidden />}
               loading={approve.pending}
+              disabled={Boolean(approve.success)}
               onClick={approveProposal}
             >
               Setujui usulan
+            </Button>
+          </div>
+        ) : null}
+
+        {/* Konfirmasi hapus: satu-satunya jalan baris berubah adalah tekan
+            tombol ini (void = soft delete, masih terlihat di Riwayat). */}
+        {card.type === "delete_confirmation" && card.transaction ? (
+          <div className="space-y-2">
+            {remove.error ? <Alert tone="error">{remove.error}</Alert> : null}
+            {remove.success ? (
+              <Alert tone="success">
+                {remove.success} Baris ini tetap terlihat di halaman Riwayat dengan status dibatalkan.
+              </Alert>
+            ) : null}
+            <Button
+              variant="danger"
+              size="sm"
+              icon={<Trash2 className="size-3.5" aria-hidden />}
+              loading={remove.pending}
+              disabled={Boolean(remove.success)}
+              onClick={removeTransaction}
+            >
+              Hapus transaksi
             </Button>
           </div>
         ) : null}

@@ -57,6 +57,9 @@ var searchStopwords = map[string]struct{}{
 	"terakhir": {}, "paling": {}, "besar": {}, "kecil": {}, "lebih": {},
 	"kurang": {}, "atas": {}, "bawah": {}, "rp": {}, "uang": {}, "keluar": {},
 	"masuk": {}, "dapat": {}, "cari": {}, "tampilkan": {}, "lihat": {}, "daftar": {},
+	// Kata kerja aksi: "hapus transaksi makan siang" harus mencari "makan
+	// siang", bukan kata "hapus" yang tidak ada di deskripsi mana pun.
+	"cek": {}, "hapus": {}, "buang": {}, "hilangkan": {}, "batalkan": {}, "batal": {},
 }
 
 var monthWords = map[string]string{

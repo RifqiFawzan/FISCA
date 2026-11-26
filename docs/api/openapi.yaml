@@ -1881,6 +1881,8 @@ components:
         - budget_status
         - budget_proposal
         - recommendation
+        - account_balance
+        - delete_confirmation
         - error
 
     AssistantRequest:
@@ -1911,6 +1913,10 @@ components:
         categories:
           type: array
           items: {$ref: '#/components/schemas/CategorySpend'}
+        accounts:
+          type: array
+          description: Saldo per akun untuk kartu account_balance
+          items: {$ref: '#/components/schemas/Account'}
         trend:
           type: array
           items: {$ref: '#/components/schemas/MonthlyTotal'}

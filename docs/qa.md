@@ -797,3 +797,31 @@ curl -H "Authorization: Bearer $TOKEN" "http://localhost:8080/api/v1/transaction
 WEB_URL=http://localhost:3000 node tests/verify-advice.mjs   # ADVICE STRUCTURE PASS
 E2E_WEB_URL=http://localhost:3000 npm run test:e2e
 ```
+
+##31. Intent asisten: cek saldo, cek transaksi, hapus transaksi (26 November2026)
+
+**Permintaan:** asisten dapat (1) mengecek transaksi, (2) mengecek riwayat transaksi, (3) mengecek saldo, (4) menghapus transaksi/pencatatan yang salah; intent diterapkan penuh. antislop mode DURING (session override).
+
+| Lapis | Keputusan |
+|---|---|
+| Prompt (`ai.go`) | kind baru **`balance`** dan **`delete_transaction`**; `search` diperluas ("cari/**cek**/riwayat/daftar/lihat transaksi") dengan batas tegas: "cek saldo" -> balance, "cek budget" -> budget_status; delete_transaction mengisi `query` dengan kata kunci target tanpa kata kerja "hapus", dilarang menyatakan transaksi sudah terhapus, `answer` dikosongkan (balasan disusun server) |
+| `Ai_intent.md` A3 | klasifikasi baru **G. BALANCE** dan **H. DELETE TRANSACTION**; OUT OF SCOPE jadi I. Penghapusan selalu menampilkan kandidat lalu menunggu konfirmasi pengguna |
+| Server (`assistant.go`) | `handleBalance`: paragraf + poin "- " dari `ListAccountBalances` (angka backend, bukan model). `handleDelete` + `deleteCandidates`: pencarian **deterministik** (filter periode/tipe/nominal -> frasa utuh -> kata terpanjang -> daftar terbaru tanpa kata kunci), hanya baris `active`. Nol hasil -> jawab jujur tidak ada; >1 -> daftar kandidat + minta spesifikasi; tepat 1 -> kartu konfirmasi. **Tidak ada baris yang dihapus di server** |
+| Kontrak | enum `AssistantCardType` + **`account_balance`**, **`delete_confirmation`**; properti `AssistantCard.accounts: Account[]`; `api.gen.ts` diregenerasi (`npm run gen:api`) |
+| Frontend (`assistant-card.tsx`) | Kartu saldo: daftar per akun (saldo negatif warna expense, akun utama ditandai). Kartu hapus: tombol danger "Hapus transaksi" -> `api.transactions.void` (soft delete, alasan "Dihapus lewat asisten") -> alert sukses `role=status` + tombol nonaktif. Tanpa tekan tombol, tidak ada yang berubah. `useAction.run` butuh argumen kedua (pesan sukses), tanpa itu `success` tidak pernah terisi |
+| Heuristic + draft | Fallback tanpa AI: "hapus/buang/hilangkan/batalkan" -> delete dan "saldo" -> balance diprioritaskan sebelum kata kerja catat; "cek/lihat/daftar transaksi" -> search. Marker draft +"cek/hapus/saldo" agar pertanyaan baru tidak tertelan draft pending. Stopword pencarian +"cek/hapus/buang/hilangkan/batalkan/batal" supaya kata kerja tidak ikut jadi kata kunci |
+
+**Verifikasi (26 November2026):**
+- `go build`/`go vet`/`go test ./...` **ok**; uji kontrak membuktikan kedua kartu baru benar-benar terproduksi (pesan "cek saldo" dan "hapus transaksi kopi uji" di daftar `assistantMessages`)
+- `tsc`0, `eslint`0, `next build` ok
+- Live `localhost:3000` (akun demo, AI aktif): "cek saldo" -> balasan total + poin per akun + kartu `account_balance` (Cash/GoPay); "hapus transaksi makan siang" -> **3 kandidat** (kartu historical_search, tanpa tombol); "hapus transaksi makan siang klien" -> tepat 1 kandidat + kartu konfirmasi; tekan Hapus -> DB `status=voided`, `void_reason=Dihapus lewat asisten`; pengulangan dengan "makan siang pakai gopay" -> alert sukses + tombol nonaktif; "cek transaksi hari ini" -> filter hari ini + kartu pencarian (jujur kosong saat tak ada transaksi); **0 error console**
+- Regresi: **e2e50/50 PASS**; streaming, assistant-card, bubble-pair, scroller, hydration, sidebar, iphone, profile-rows **PASS**; audit-mobile **0 critical /0 warn** (WAJIB `WEB_URL=http://localhost:3000`, default skrip `:3001` menunjukkan halaman error Chrome); verify-advice **PASS**
+
+**Reproduksi:**
+```bash
+WEB_URL=http://localhost:3000 node tests/audit-mobile.mjs   # MOBILE AUDIT PASS
+# Asisten: "cek saldo" | "hapus transaksi makan siang" | "cek transaksi hari ini"
+# Klik "Hapus transaksi" -> SELECT status FROM transactions WHERE ... = voided
+```
+
+**Tambahan (sesi sama):** alert sukses "Setujui usulan" yang sejak awal tidak pernah tampil (bug lama: `approve.run` tanpa argumen pesan) ikut diperbaiki: `success` kini terisi, alert `role=status` tampil, dan tombol nonaktif setelah persetujuan. Terverifikasi live: "ubah budget jadi5jt" -> Setujui -> "Usulan disetujui dan sudah berlaku."

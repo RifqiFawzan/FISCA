@@ -41,6 +41,9 @@ type Card struct {
 	Unusual     *UnusualSpendingDTO `json:"unusual,omitempty"`
 
 	Categories []CategorySpendDTO `json:"categories,omitempty"`
+	// Accounts menopang kartu saldo: daftar nama + saldo per akun hasil
+	// hitungan backend (ListAccountBalances), bukan angka karangan model.
+	Accounts []AccountDTO `json:"accounts,omitempty"`
 	// Trend meneruskan monthlyTrend backend untuk chart mini di kartu
 	// ringkasan (analisis interaktif; angka tetap hasil hitungan backend).
 	Trend         []MonthlyTotalDTO `json:"trend,omitempty"`
@@ -421,6 +424,10 @@ func (s *Service) routeIntent(
 			Card{Type: "budget_status", Title: "Budget " + r.Label, Budget: budget}, nil
 	case "proposal":
 		return s.handleBudgetProposal(ctx, q, userID, text, intent, periodRaw, wc)
+	case "balance":
+		return s.handleBalance(ctx, q, userID)
+	case "delete_transaction":
+		return s.handleDelete(ctx, q, userID, text, intent, periodRaw)
 	case "consultation":
 		// Jawaban grounding-nya dibangun model dari konteks finansial backend;
 		// kosong berarti model tidak yakin — jatuh ke jawaban kapabilitas.
@@ -635,6 +642,153 @@ func (s *Service) handleBudgetProposal(ctx context.Context, q *generated.Queries
 		Card{Type: "budget_proposal", Title: "Usulan budget baru", Body: "Setujui untuk menerapkan.", Proposal: &proposal}, nil
 }
 
+// handleBalance menampilkan saldo per akun dan totalnya. Angka datang dari
+// ListAccountBalances (ledger backend); balasan disusun server sebagai
+// paragraf lalu poin "- " agar RichReply menyajikannya sebagai daftar rapi.
+func (s *Service) handleBalance(ctx context.Context, q *generated.Queries, userID uuid.UUID) (string, Card, error) {
+	accounts, err := s.ListAccounts(ctx, q, userID)
+	if err != nil {
+		return "", Card{}, err
+	}
+	if len(accounts) == 0 {
+		return "Belum ada akun. Tambahkan akun dulu di halaman Profil agar saya bisa menampilkan saldo.",
+			Card{Type: "recommendation", Title: "Belum ada akun", Body: "Kelola akun di halaman Profil."}, nil
+	}
+	var total int64
+	for _, account := range accounts {
+		total += account.Balance
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "Total saldo kamu Rp%s dari %d akun.\n\n", formatRupiahPlain(total), len(accounts))
+	for i, account := range accounts {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		fmt.Fprintf(&b, "- %s: Rp%s", account.Name, formatRupiahPlain(account.Balance))
+	}
+	return b.String(), Card{
+		Type:     "account_balance",
+		Title:    "Saldo akun",
+		Body:     "Saldo = saldo awal plus mutasi transaksi aktif.",
+		Accounts: accounts,
+	}, nil
+}
+
+// handleDelete mencari kandidat transaksi yang dimaksud pengguna dan
+// MENUNGGU konfirmasi lewat tombol di kartu; tidak ada baris yang dihapus
+// di sini (Ai_intent.md: perubahan data butuh persetujuan pengguna).
+func (s *Service) handleDelete(ctx context.Context, q *generated.Queries, userID uuid.UUID, text string, intent ai.Intent, periodRaw string) (string, Card, error) {
+	queryText := strings.TrimSpace(intent.Query)
+	if queryText == "" {
+		queryText = text
+	}
+	candidates, filters, err := s.deleteCandidates(ctx, q, userID, queryText, periodRaw, intent.Amount, 5)
+	if err != nil {
+		return "", Card{}, err
+	}
+	switch {
+	case len(candidates) == 0:
+		return "Aku tidak menemukan transaksi aktif yang cocok. Sebutkan deskripsi atau nominalnya, misalnya: hapus transaksi makan siang 25rb.",
+			Card{
+				Type:  "recommendation",
+				Title: "Tidak ada yang cocok",
+				Body:  "Penghapusan selalu menampilkan kandidat dulu, tidak pernah langsung menghapus.",
+			}, nil
+	case len(candidates) == 1:
+		tx := candidates[0]
+		return "Ini transaksi yang kamu maksud. Periksa dulu, lalu tekan Hapus di kartu untuk membatalkannya.",
+			Card{
+				Type:        "delete_confirmation",
+				Title:       "Hapus transaksi?",
+				Body:        filters.Interpreted,
+				Transaction: &tx,
+			}, nil
+	default:
+		return fmt.Sprintf("Ada %d transaksi yang cocok. Sebutkan yang paling tepat berdasarkan nominal atau tanggalnya.", len(candidates)),
+			Card{
+				Type:  "historical_search",
+				Title: "Kandidat transaksi",
+				Body:  filters.Interpreted,
+				Items: candidates,
+			}, nil
+	}
+}
+
+// deleteCandidates finds the active transactions a delete_transaction intent
+// points at. Matching stays deterministic (Ai_intent.md: AI never picks the
+// victim): structured filters first (period, type, amounts), then the
+// leftover keyword as a whole phrase, then its longest word when the phrase
+// is not a substring of any description. Voided rows never match because
+// ListTransactions only returns status='active'.
+func (s *Service) deleteCandidates(ctx context.Context, q *generated.Queries, userID uuid.UUID, raw, periodRaw string, amount int64, limit int) ([]TransactionDTO, SearchFilters, error) {
+	filters, err := s.ParseSearch(ctx, q, userID, raw)
+	if err != nil {
+		return nil, SearchFilters{}, err
+	}
+	if filters.Period == "" && strings.TrimSpace(periodRaw) != "" {
+		filters.Period = periodRaw
+	}
+	if amount > 0 {
+		filters.MinAmount = &amount
+		filters.MaxAmount = &amount
+	}
+
+	base := ListTransactionsInput{
+		Type:       filters.Type,
+		CategoryID: filters.CategoryID,
+		Period:     filters.Period,
+		Limit:      limit,
+		MinAmount:  filters.MinAmount,
+		MaxAmount:  filters.MaxAmount,
+	}
+
+	if filters.Text != "" {
+		whole := base
+		whole.Q = filters.Text
+		page, err := s.ListTransactions(ctx, q, userID, whole)
+		if err != nil {
+			return nil, SearchFilters{}, err
+		}
+		if len(page.Items) > 0 {
+			return page.Items, filters, nil
+		}
+		if word := longestWord(filters.Text); word != "" && word != filters.Text {
+			byWord := base
+			byWord.Q = word
+			page, err := s.ListTransactions(ctx, q, userID, byWord)
+			if err != nil {
+				return nil, SearchFilters{}, err
+			}
+			if len(page.Items) > 0 {
+				return page.Items, filters, nil
+			}
+		}
+	}
+
+	// No keyword, or nothing matched: the filtered recent list still gives
+	// the user a concrete candidate set to pick from (or an honest empty).
+	page, err := s.ListTransactions(ctx, q, userID, base)
+	if err != nil {
+		return nil, SearchFilters{}, err
+	}
+	return page.Items, filters, nil
+}
+
+// longestWord returns the longest whitespace-separated word (at least three
+// runes) of a search phrase, used as the fallback delete-match keyword.
+func longestWord(text string) string {
+	best := ""
+	for _, word := range strings.Fields(text) {
+		if len([]rune(word)) < 3 {
+			continue
+		}
+		if len([]rune(word)) > len([]rune(best)) {
+			best = word
+		}
+	}
+	return best
+}
+
 func (s *Service) clarify(ctx context.Context, q *generated.Queries, userID uuid.UUID, conversationID pgtype.UUID, input CreateTransactionInput, missing []string, body string) (string, Card, error) {
 	payload, err := json.Marshal(input)
 	if err != nil {
@@ -675,6 +829,9 @@ func (s *Service) tryResolveDraft(
 	for _, marker := range []string{
 		"berapa", "cari", "riwayat", "budget", "anggaran", "ringkasan", "total",
 		"paling besar", "termahal", "terbesar", "tampilkan", "lihat daftar",
+		// Pertanyaan/baru (cek saldo, hapus transaksi, cek transaksi) tidak
+		// boleh tertelan draft pencatatan yang masih menunggu.
+		"cek", "hapus", "saldo",
 	} {
 		if strings.Contains(lower, marker) {
 			return "", Card{}, false, nil
@@ -980,37 +1137,51 @@ func heuristicIntent(text string, now time.Time) ai.Intent {
 	lower := strings.ToLower(text)
 	intent := ai.Intent{Kind: "unknown", Confidence: 0.55}
 
-	createWords := []string{"catat", "beli", "bayar", "jajan", "makan", "minum", "terima", "gaji", "tambah", "abis", "keluar", "transfer", "nabung", "pindah"}
-	for _, word := range createWords {
-		if strings.Contains(lower, word) {
-			intent.Kind = "create_transaction"
-			break
-		}
-	}
-
+	// Aksi atas data diprioritaskan agar tidak tertelan kata kerja lain:
+	// "hapus transaksi beli pulsa" jangan jatuh ke create_transaction hanya
+	// karena kata "beli"; "berapa saldo" jangan jadi spending_summary.
 	switch {
-	case strings.Contains(lower, "paling besar"), strings.Contains(lower, "termahal"), strings.Contains(lower, "terbesar"):
-		intent.Kind = "largest_transactions"
-	case strings.Contains(lower, "tidak biasa"), strings.Contains(lower, "menyimpang"),
-		strings.Contains(lower, "aneh"), strings.Contains(lower, "unusual"):
-		intent.Kind = "unusual_spending"
-	case strings.Contains(lower, "cari"), strings.Contains(lower, "riwayat"):
-		intent.Kind = "search"
-	case strings.Contains(lower, "budget"), strings.Contains(lower, "anggaran"):
-		if strings.Contains(lower, "ubah") || strings.Contains(lower, "ganti") ||
-			strings.Contains(lower, "naik") || strings.Contains(lower, "turun") ||
-			strings.Contains(lower, "buat") || strings.Contains(lower, "tambah") {
-			intent.Kind = "proposal"
-		} else {
-			intent.Kind = "budget_status"
+	case strings.Contains(lower, "hapus"), strings.Contains(lower, "buang"),
+		strings.Contains(lower, "hilangkan"), strings.Contains(lower, "batalkan"):
+		intent.Kind = "delete_transaction"
+		intent.Query = text
+	case strings.Contains(lower, "saldo"):
+		intent.Kind = "balance"
+	default:
+		createWords := []string{"catat", "beli", "bayar", "jajan", "makan", "minum", "terima", "gaji", "tambah", "abis", "keluar", "transfer", "nabung", "pindah"}
+		for _, word := range createWords {
+			if strings.Contains(lower, word) {
+				intent.Kind = "create_transaction"
+				break
+			}
 		}
-	case strings.Contains(lower, "berapa"), strings.Contains(lower, "ringkasan"),
-		strings.Contains(lower, "total"), strings.Contains(lower, "summary"),
-		strings.Contains(lower, "pengeluaran"):
-		intent.Kind = "spending_summary"
-	}
-	if intent.Kind == "create_transaction" && strings.Contains(lower, "berapa") {
-		intent.Kind = "spending_summary"
+
+		switch {
+		case strings.Contains(lower, "paling besar"), strings.Contains(lower, "termahal"), strings.Contains(lower, "terbesar"):
+			intent.Kind = "largest_transactions"
+		case strings.Contains(lower, "tidak biasa"), strings.Contains(lower, "menyimpang"),
+			strings.Contains(lower, "aneh"), strings.Contains(lower, "unusual"):
+			intent.Kind = "unusual_spending"
+		case strings.Contains(lower, "cari"), strings.Contains(lower, "riwayat"),
+			strings.Contains(lower, "cek transaksi"), strings.Contains(lower, "lihat transaksi"),
+			strings.Contains(lower, "daftar transaksi"):
+			intent.Kind = "search"
+		case strings.Contains(lower, "budget"), strings.Contains(lower, "anggaran"):
+			if strings.Contains(lower, "ubah") || strings.Contains(lower, "ganti") ||
+				strings.Contains(lower, "naik") || strings.Contains(lower, "turun") ||
+				strings.Contains(lower, "buat") || strings.Contains(lower, "tambah") {
+				intent.Kind = "proposal"
+			} else {
+				intent.Kind = "budget_status"
+			}
+		case strings.Contains(lower, "berapa"), strings.Contains(lower, "ringkasan"),
+			strings.Contains(lower, "total"), strings.Contains(lower, "summary"),
+			strings.Contains(lower, "pengeluaran"):
+			intent.Kind = "spending_summary"
+		}
+		if intent.Kind == "create_transaction" && strings.Contains(lower, "berapa") {
+			intent.Kind = "spending_summary"
+		}
 	}
 
 	switch {

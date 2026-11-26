@@ -452,6 +452,8 @@ func TestContractMatchesLiveAPI(t *testing.T) {
 		"cek budget bulan ini",                         // budget_status
 		"ubah budget jadi 3jt",                         // budget_proposal
 		"halo apa kabar",                               // recommendation
+		"cek saldo",                                    // account_balance
+		"hapus transaksi kopi uji",                     // delete_confirmation (kandidat; penghapusan baru jalan lewat tombol)
 	}
 	var conversationID string
 	for i, message := range assistantMessages {

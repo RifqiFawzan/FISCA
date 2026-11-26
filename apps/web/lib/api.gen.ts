@@ -2480,7 +2480,7 @@ export interface components {
          * @description Kontrak visual asisten (plan.md §7.3)
          * @enum {string}
          */
-        AssistantCardType: "transaction_result" | "clarification" | "financial_summary" | "historical_search" | "largest_transaction" | "unusual_spending" | "budget_status" | "budget_proposal" | "recommendation" | "error";
+        AssistantCardType: "transaction_result" | "clarification" | "financial_summary" | "historical_search" | "largest_transaction" | "unusual_spending" | "budget_status" | "budget_proposal" | "recommendation" | "account_balance" | "delete_confirmation" | "error";
         AssistantRequest: {
             /** Format: uuid */
             conversationId?: string;
@@ -2503,6 +2503,8 @@ export interface components {
             proposal?: components["schemas"]["BudgetProposal"];
             unusual?: components["schemas"]["UnusualSpending"];
             categories?: components["schemas"]["CategorySpend"][];
+            /** @description Saldo per akun untuk kartu account_balance */
+            accounts?: components["schemas"]["Account"][];
             trend?: components["schemas"]["MonthlyTotal"][];
             items?: components["schemas"]["Transaction"][];
             warnings?: components["schemas"]["Warning"][];
